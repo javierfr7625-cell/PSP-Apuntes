@@ -1,0 +1,503 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Tema 2: Hilos y Sincronización en Java" activePage="tema2">
+  <div class="header-section">
+    <span class="badge badge-purple">Tema 2 · Teoría y Práctica</span>
+    <h1>Programación de Hilos y Sincronización</h1>
+    <p class="lead">
+      Hilos en Java con <code>Thread</code> y <code>Runnable</code>, condiciones de carrera, sección crítica, algoritmos de Dijkstra y control de concurrencia con semáforos (<code>Semaphore</code>).
+    </p>
+  </div>
+
+  <!-- Indice de navegación interna -->
+  <div class="toc-card">
+    <div class="toc-title">📑 Contenidos de esta sección</div>
+    <div class="toc-grid">
+      <a href="#hilos-conceptos">1. ¿Qué es un Hilo?</a>
+      <a href="#creacion-hilos">2. Creación de Hilos en Java</a>
+      <a href="#operaciones-ciclo">3. Operaciones: join, sleep, interrupt</a>
+      <a href="#problemas-concurrencia">4. Condiciones de Carrera y Fallos</a>
+      <a href="#seccion-critica">5. Sección Crítica y Reglas de Dijkstra</a>
+      <a href="#semaforos">6. Semáforos (java.util.concurrent.Semaphore)</a>
+      <a href="#semaforo-static">7. El Fallo de Semáforo no Estático</a>
+      <a href="#semaforos-independientes">8. Semáforos Independientes</a>
+    </div>
+  </div>
+
+  <!-- 1. ¿Qué es un Hilo? -->
+  <section id="hilos-conceptos" class="topic-section">
+    <h2>1. ¿Qué es un Hilo (Thread)?</h2>
+
+    <p>
+      Un <strong>hilo (hebra o thread)</strong> es la <strong>unidad básica de utilización de la CPU</strong>, y más concretamente de un núcleo (core) del procesador. Es una secuencia independiente de instrucciones en ejecución que existe <em>dentro del contexto de un proceso</em>.
+    </p>
+
+    <div class="grid-2">
+      <div class="card card-accent-emerald">
+        <h3>Recursos que COMPARTEN los hilos</h3>
+        <p>Todos los hilos del mismo proceso comparten:</p>
+        <ul>
+          <li><strong>Espacio de direcciones de memoria</strong> (código, variables globales y estáticas).</li>
+          <li><strong>El montículo (Heap):</strong> Objetos e instancias creadas con <code>new</code>.</li>
+          <li><strong>Recursos del SO:</strong> Descriptores de archivos abiertos, conexiones de red y permisos.</li>
+        </ul>
+      </div>
+
+      <div class="card card-accent-sky">
+        <h3>Recursos que tiene CADA hilo por separado</h3>
+        <p>Cada hilo tiene su propio contexto de ejecución privado:</p>
+        <ul>
+          <li><strong>Contador de Programa (PC):</strong> Registro que indica qué instrucción va a ejecutar a continuación.</li>
+          <li><strong>Registros de la CPU:</strong> Valores intermedios de los cálculos en marcha.</li>
+          <li><strong>Pila de llamadas (Stack):</strong> Almacena las variables locales de los métodos y el historial de llamadas.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <h4>💡 ¿Por qué usar hilos en lugar de procesos?</h4>
+      <ul>
+        <li><strong>Capacidad de respuesta:</strong> Una tarea larga en segundo plano (guardar un archivo o descargar datos) no congela la interfaz gráfica o la atención a otros usuarios.</li>
+        <li><strong>Eficiencia extrema:</strong> Crear un hilo no requiere que el SO clone memoria ni cree nuevas tablas de páginas (proceso ligero).</li>
+        <li><strong>Paralelismo real:</strong> En procesadores modernos con múltiples cores, los hilos se ejecutan de verdad simultáneamente en núcleos físicos distintos.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 2. Creación de Hilos en Java -->
+  <section id="creacion-hilos" class="topic-section">
+    <h2>2. Creación de Hilos en Java</h2>
+
+    <p>Hay dos formas principales de definir un hilo en Java:</p>
+
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-btn active">Opción A: Heredar de Thread (Clase del profesor)</button>
+        <button class="tab-btn">Opción B: Implementar Runnable (Recomendado estándar)</button>
+      </div>
+
+      <div class="tab-content active">
+        <p>Es la forma utilizada en las diapositivas de clase y en los ejercicios de evaluación:</p>
+        <pre><code>// 1. Crear una subclase que herede de Thread
+public class MiHilo extends Thread &#123;
+    private String texto;
+
+    public MiHilo(String nombre, String texto) &#123;
+        super(nombre); // Asigna el nombre al hilo (getName())
+        this.texto = texto;
+        // Opcional: auto-iniciarse en el constructor con start();
+        start();
+    &#125;
+
+    @Override
+    public void run() &#123;
+        // Código que ejecutará el hilo concurrentemente
+        System.out.println("Hilo en ejecución: " + getName() + " con texto: " + texto);
+    &#125;
+&#125;
+
+// En la clase Principal:
+public class Main &#123;
+    public static void main(String[] args) &#123;
+        // Se instancian e inician los hilos
+        MiHilo h1 = new MiHilo("Hilo-1", "Hola");
+        MiHilo h2 = new MiHilo("Hilo-2", "Mundo");
+    &#125;
+&#125;</code></pre>
+      </div>
+
+      <div class="tab-content">
+        <p>Ideal cuando tu clase ya hereda de otra clase (ya que Java no permite herencia múltiple):</p>
+        <pre><code>public class MiTarea implements Runnable &#123;
+    @Override
+    public void run() &#123;
+        System.out.println("Ejecutando tarea Runnable");
+    &#125;
+&#125;
+
+public class Main &#123;
+    public static void main(String[] args) &#123;
+        Thread t = new Thread(new MiTarea(), "NombreHilo");
+        t.start();
+    &#125;
+&#125;</code></pre>
+      </div>
+    </div>
+
+    <div class="callout callout-exam">
+      <h4>🚨 PREGUNTA TÍPICA DE EXAMEN: ¿start() o run()?</h4>
+      <p>
+        <strong>¡NUNCA llames a <code>hilo.run()</code> directamente!</strong>
+      </p>
+      <ul>
+        <li>
+          Si llamas a <code>hilo.start()</code>: Java solicita al Sistema Operativo la creación de un nuevo hilo de ejecución nativo y llama a su método <code>run()</code> de forma <strong>asíncrona y concurrente</strong>.
+        </li>
+        <li>
+          Si llamas a <code>hilo.run()</code>: El método se ejecuta como una función normal <strong>dentro del mismo hilo que lo invocó</strong> (el hilo <code>main</code>), de forma secuencial y bloqueante. ¡Pierdes toda la concurrencia!
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3. Operaciones: join, sleep, interrupt -->
+  <section id="operaciones-ciclo" class="topic-section">
+    <h2>3. Operaciones Fundamentales del Ciclo de Vida</h2>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Método</th>
+            <th>Firma</th>
+            <th>Función y Comportamiento</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>join()</code></td>
+            <td><code>public void join() throws InterruptedException</code></td>
+            <td>
+              <strong>Pausa el hilo actual (habitualmente el <code>main</code>)</strong> hasta que el hilo sobre el que se invoca finalice su ejecución. Esencial para esperar a que los hilos terminen antes de mostrar resultados globales.
+            </td>
+          </tr>
+          <tr>
+            <td><code>sleep()</code></td>
+            <td><code>public static void sleep(long millis) throws InterruptedException</code></td>
+            <td>
+              Duerme el hilo que lo ejecuta durante el tiempo indicado en milisegundos. Libera la CPU pero <strong>NO libera los bloqueos ni semáforos</strong> que tenga adquiridos.
+            </td>
+          </tr>
+          <tr>
+            <td><code>interrupt()</code></td>
+            <td><code>public void interrupt()</code></td>
+            <td>
+              Envía una señal de interrupción al hilo. Si el hilo está bloqueado en <code>sleep()</code> o <code>join()</code>, se despierta inmediatamente lanzando una <code>InterruptedException</code>.
+            </td>
+          </tr>
+          <tr>
+            <td><code>isAlive()</code></td>
+            <td><code>public boolean isAlive()</code></td>
+            <td>
+              Devuelve <code>true</code> si el hilo ha sido iniciado con <code>start()</code> y aún no ha terminado su método <code>run()</code>.
+            </td>
+          </tr>
+          <tr>
+            <td><code>setPriority()</code></td>
+            <td><code>public void setPriority(int newPriority)</code></td>
+            <td>
+              Establece la prioridad del hilo entre 1 (<code>Thread.MIN_PRIORITY</code>) y 10 (<code>Thread.MAX_PRIORITY</code>). 5 es la por defecto (<code>Thread.NORM_PRIORITY</code>). Sugiere al planificador del SO qué hilo favorecer.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Join Example -->
+    <div class="code-wrapper">
+      <pre><code>// Patrón canónico en el Main para esperar a una lista de hilos
+ArrayList&lt;Hilo&gt; listaHilos = new ArrayList&lt;&gt;();
+
+for (int i = 0; i &lt; 5; i++) &#123;
+    listaHilos.add(new Hilo("Hilo-" + i));
+&#125;
+
+// Esperar a que terminen TODOS antes de continuar
+for (Hilo h : listaHilos) &#123;
+    try &#123;
+        h.join(); // Bloquea el main hasta que este hilo particular muera
+    &#125; catch (InterruptedException e) &#123;
+        e.printStackTrace();
+    &#125;
+&#125;
+
+// Ahora sí es 100% seguro leer los resultados globales acumulados
+System.out.println("Total procesado: " + Hilo.variableGlobal);</code></pre>
+    </div>
+  </section>
+
+  <!-- 4. Problemas de la Concurrencia -->
+  <section id="problemas-concurrencia" class="topic-section">
+    <h2>4. Problemas de la Concurrencia</h2>
+
+    <p>
+      Al compartir memoria libremente, la ejecución intercalada de instrucciones produce fallos críticos si no hay sincronización:
+    </p>
+
+    <div class="grid-2">
+      <div class="card card-accent-rose">
+        <h3>🏁 Condición de Carrera (Race Condition)</h3>
+        <p>
+          Ocurre cuando el resultado final de un programa depende del <strong>orden exacto y no determinista</strong> en que el planificador del SO intercala las instrucciones de los distintos hilos.
+        </p>
+      </div>
+
+      <div class="card card-accent-rose">
+        <h3>💥 Inconsistencia de Memoria</h3>
+        <p>
+          Una instrucción en apariencia atómica como <code>contador++</code> en realidad son 3 pasos de máquina:
+        </p>
+        <ol style="font-size: 0.88rem;">
+          <li>Cargar el valor de la RAM al registro CPU (<code>R1 = contador</code>).</li>
+          <li>Incrementar el registro (<code>R1 = R1 + 1</code>).</li>
+          <li>Escribir el registro en la RAM (<code>contador = R1</code>).</li>
+        </ol>
+        <p style="font-size: 0.85rem; color: #f87171;">
+          Si dos hilos se intercalan entre los pasos 1 y 3, ambos leen el mismo valor original y uno sobrescribe la actualización del otro, ¡perdiéndose incrementos!
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>🔒 Interbloqueo (Deadlock)</h3>
+        <p>
+          Situación de bloqueo mutuo donde dos o más hilos quedan congelados para siempre porque el hilo A espera un recurso bloqueado por el hilo B, y el hilo B espera el recurso bloqueado por el hilo A.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>⏳ Inanición (Starvation) y Bloqueo Activo (Livelock)</h3>
+        <p>
+          <strong>Inanición:</strong> A un hilo nunca se le concede acceso a la CPU o al recurso porque otros hilos más prioritarios siempre se le adelantan.
+        </p>
+        <p>
+          <strong>Livelock:</strong> Los hilos cambian activamente de estado respondiendo uno a otro pero sin realizar ningún progreso real.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Sección Crítica y Reglas de Dijkstra -->
+  <section id="seccion-critica" class="topic-section">
+    <h2>5. La Sección Crítica (Critical Section)</h2>
+
+    <div class="card card-accent-sky" style="margin-bottom: 1.5rem;">
+      <p>
+        Se denomina <strong>Sección Crítica</strong> a aquella región de código donde se accede y manipula una variable, estructura o recurso compartido. Para garantizar la consistencia, <strong>solo un hilo debe estar dentro de la sección crítica a la vez</strong>.
+      </p>
+    </div>
+
+    <div class="callout callout-info">
+      <h4>📐 Las 3 Condiciones de Solución de Dijkstra</h4>
+      <p>Cualquier mecanismo de sincronización válido debe cumplir estrictamente:</p>
+      <ol>
+        <li>
+          <strong>Exclusión Mutua (Mutual Exclusion):</strong> Si un hilo está ejecutando su sección crítica, ningún otro hilo puede entrar a ejecutar la suya simultáneamente.
+        </li>
+        <li>
+          <strong>Progreso (Progress):</strong> Si ningún hilo está en su sección crítica y varios desean entrar, solo aquellos hilos que están esperando activamente pueden participar en la decisión de quién entra. La decisión no puede posponerse indefinidamente.
+        </li>
+        <li>
+          <strong>Espera Limitada (Bounded Waiting):</strong> Debe existir un límite finito al número de veces que otros hilos pueden entrar en su sección crítica antes de que se le conceda la entrada a un hilo que ya la ha solicitado (evita la inanición).
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 6. Semáforos en Java -->
+  <section id="semaforos" class="topic-section">
+    <h2>6. Semáforos con <code>java.util.concurrent.Semaphore</code></h2>
+
+    <p>
+      Propuestos por Edsger Dijkstra en 1965, los semáforos son el mecanismo estándar de sincronización requerido en el examen de PSP. Un semáforo consta internamente de:
+    </p>
+    <ul>
+      <li>Un <strong>contador entero de permisos</strong> disponibles.</li>
+      <li>Una <strong>cola de espera (FIFO)</strong> de hilos bloqueados.</li>
+    </ul>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3><code>acquire()</code> ⬇️ (-1 Permiso)</h3>
+        <p>
+          Solicita un permiso al semáforo:
+        </p>
+        <ul>
+          <li>Si el contador &gt; 0, decrementa en 1 y el hilo <strong>continúa inmediatamente</strong> su ejecución dentro de la sección crítica.</li>
+          <li>Si el contador == 0, el hilo se <strong>bloquea</strong> y se encola hasta que otro hilo libere un permiso.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3><code>release()</code> ⬆️ (+1 Permiso)</h3>
+        <p>
+          Devuelve un permiso al semáforo:
+        </p>
+        <ul>
+          <li>Incrementa el contador en 1.</li>
+          <li>Si hay hilos bloqueados esperando en la cola, el SO <strong>despierta a uno de ellos</strong> para que acceda a la sección crítica.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Standard Semaphore Template -->
+    <div class="code-wrapper">
+      <pre><code>import java.util.concurrent.Semaphore;
+
+public class EjemploSemaforo &#123;
+    // Semáforo binario (Mutex): solo 1 hilo puede entrar a la vez
+    private static Semaphore semaforo = new Semaphore(1);
+    private static int contadorGlobal = 0;
+
+    public static void incrementar() &#123;
+        try &#123;
+            // 1. ANTES DE LA SECCIÓN CRÍTICA: Solicitar permiso
+            semaforo.acquire();
+
+            // 2. SECCIÓN CRÍTICA (Protegida)
+            contadorGlobal++;
+
+        &#125; catch (InterruptedException e) &#123;
+            Thread.currentThread().interrupt();
+        &#125; finally &#123;
+            // 3. DESPUÉS DE LA SECCIÓN CRÍTICA: Liberar permiso SIEMPRE en el finally
+            semaforo.release();
+        &#125;
+    &#125;
+&#125;</code></pre>
+    </div>
+  </section>
+
+  <!-- 7. El Fallo de Semáforo no Estático -->
+  <section id="semaforo-static" class="topic-section">
+    <h2>7. El Error Más Común en el Examen: El Semáforo de Instancia</h2>
+
+    <div class="callout callout-exam">
+      <h4>🚨 EL ERROR TÍPICO QUE SUSPENDE EL EXAMEN</h4>
+      <p>Observa con mucha atención la diferencia entre estas dos declaraciones dentro de la clase del Hilo:</p>
+      
+      <div class="grid-2" style="margin-top: 1rem;">
+        <div style="background: rgba(239, 68, 68, 0.15); padding: 1rem; border-radius: 8px; border: 1px solid #ef4444;">
+          <strong style="color: #f87171;">❌ INCORRECTO (Semáforo de Instancia):</strong>
+          <pre><code>public class Hilo extends Thread &#123;
+    // ¡¡ERROR!! Cada vez que haces "new Hilo()",
+    // se crea un semáforo NUEVO e INDEPENDIENTE.
+    Semaphore sem = new Semaphore(1);
+    ...
+&#125;</code></pre>
+          <p style="font-size: 0.85rem; color: #fca5a5; margin-top: 0.5rem;">
+            Cada hilo tiene su propio semáforo privado. Como nadie comparte nada, todos entran a la sección crítica a la vez y la sincronización es NULA.
+          </p>
+        </div>
+
+        <div style="background: rgba(16, 185, 129, 0.15); padding: 1rem; border-radius: 8px; border: 1px solid #10b981;">
+          <strong style="color: #34d399;">✅ CORRECTO (Semáforo Estático o Compartido):</strong>
+          <pre><code>public class Hilo extends Thread &#123;
+    // ¡¡CORRECTO!! Al ser static, solo existe UN único
+    // semáforo en memoria compartido por todos los hilos.
+    public static Semaphore sem = new Semaphore(1);
+    ...
+&#125;</code></pre>
+          <p style="font-size: 0.85rem; color: #86efac; margin-top: 0.5rem;">
+            Todos los hilos compiten por el mismo y único permiso. La exclusión mutua se cumple perfectamente.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Semáforos Independientes -->
+  <section id="semaforos-independientes" class="topic-section">
+    <h2>8. Semáforos Independientes para Recursos Distintos</h2>
+
+    <p>
+      En los ejercicios de examen (como el Ejercicio 3 del simulacro o el del Banco con clientes PLUS), se pide que <strong>el acceso a variables distintas sea independiente</strong>.
+    </p>
+
+    <div class="card card-accent-purple">
+      <h3>¿Por qué usar más de un semáforo?</h3>
+      <p>
+        Si tienes dos variables compartidas distintas (por ejemplo <code>menos5</code> y <code>5omas</code>, o <code>dineroNormal</code> y <code>dineroPLUS</code>), <strong>no debes usar un solo semáforo para todo</strong>. Si usaras uno solo, un hilo que solo quiere escribir en <code>menos5</code> bloquearía innecesariamente a otro hilo que quiere escribir en <code>5omas</code>, destrozando el rendimiento en paralelo.
+      </p>
+
+      <div class="code-wrapper">
+        <pre><code>public class HiloClasificador extends Thread &#123;
+    // Dos variables globales
+    public static int menos5 = 0;
+    public static int cincoOMas = 0;
+
+    // DOS SEMÁFOROS INDEPENDIENTES
+    public static Semaphore semMenos5 = new Semaphore(1);
+    public static Semaphore semCincoOMas = new Semaphore(1);
+
+    // Si toca modificar menos5:
+    public void registrarMenor() &#123;
+        try &#123;
+            semMenos5.acquire();
+            menos5++;
+        &#125; catch (InterruptedException e) &#123;
+            ...
+        &#125; finally &#123;
+            semMenos5.release();
+        &#125;
+    &#125;
+
+    // Si toca modificar cincoOMas:
+    public void registrarMayor() &#123;
+        try &#123;
+            semCincoOMas.acquire(); // ¡No interfiere con semMenos5!
+            cincoOMas++;
+        &#125; catch (InterruptedException e) &#123;
+            ...
+        &#125; finally &#123;
+            semCincoOMas.release();
+        &#125;
+    &#125;
+&#125;</code></pre>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .header-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .lead {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    max-width: 850px;
+    margin-top: 0.5rem;
+  }
+
+  .toc-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .toc-title {
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.5rem 1.5rem;
+  }
+
+  .toc-grid a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.88rem;
+    transition: color 0.2s;
+  }
+
+  .toc-grid a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+  }
+
+  .topic-section {
+    margin-bottom: 3.5rem;
+    scroll-margin-top: 5rem;
+  }
+</style>
+

@@ -1,0 +1,307 @@
+---
+import Layout from '../layouts/Layout.astro';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const withBase = (path: string) => `${base}${path.startsWith('/') ? path : '/' + path}`;
+---
+
+<Layout title="Apuntes PSP Java - 2º DAM" activePage="inicio">
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-badge">
+      <span class="badge badge-sky">2º DAM · Primera Evaluación</span>
+      <span class="hero-date">Curso 2024 - 2026</span>
+    </div>
+    <h1 class="hero-title">
+      Programación de <span class="accent-text">Servicios y Procesos</span>
+    </h1>
+    <p class="hero-subtitle">
+      Apuntes interactivos, teoría fundamental, ejercicios de clase completamente resueltos y el 
+      <strong>simulacro de examen oficial completado y explicado al detalle</strong> con Java, ProcessBuilder y Semáforos.
+    </p>
+
+    <div class="hero-actions">
+      <a href={withBase("/simulacro-examen")} class="btn btn-primary">
+        🎯 Ver Simulacro Resuelto (Modelo A)
+      </a>
+      <a href={withBase("/chuleta")} class="btn btn-secondary">
+        ⚡ Chuleta Rápida de Examen
+      </a>
+      <a href={withBase("/tema1-procesos")} class="btn btn-outline">
+        ⚙️ Ir al Tema 1: Procesos
+      </a>
+    </div>
+  </section>
+
+  <!-- Key Topics Cards Grid -->
+  <section class="section-container">
+    <h2 class="section-title">Contenido del Bloque</h2>
+    <div class="grid-3">
+      <!-- Card Tema 1 -->
+      <div class="card card-accent-sky">
+        <div class="card-header-icon">⚙️</div>
+        <h3>Tema 1: Procesos</h3>
+        <p>Conceptos de SO, kernel, modo dual, estados de procesos, algoritmos de planificación y control con <code>ProcessBuilder</code> y <code>Streams</code>.</p>
+        <ul class="card-list">
+          <li>Ciclo de vida y cambio de contexto</li>
+          <li>Comunicación bidireccional por tuberías (pipes)</li>
+          <li>5 Ejercicios prácticos resueltos</li>
+        </ul>
+        <a href={withBase("/tema1-procesos")} class="card-link">Explorar Tema 1 →</a>
+      </div>
+
+      <!-- Card Tema 2 -->
+      <div class="card card-accent-purple">
+        <div class="card-header-icon">🧵</div>
+        <h3>Tema 2: Hilos y Sincronización</h3>
+        <p>Hilos con <code>Thread</code> y <code>Runnable</code>, ciclo de vida, condiciones de carrera, sección crítica y semáforos (<code>Semaphore</code>).</p>
+        <ul class="card-list">
+          <li>Condiciones de Dijkstra (Exclusión, Progreso...)</li>
+          <li>Uso correcto de <code>acquire()</code> y <code>release()</code></li>
+          <li>5 Ejercicios prácticos resueltos</li>
+        </ul>
+        <a href={withBase("/tema2-hilos")} class="card-link">Explorar Tema 2 →</a>
+      </div>
+
+      <!-- Card Simulacro -->
+      <div class="card card-accent-rose card-highlight">
+        <div class="card-header-icon">🎯</div>
+        <h3>Simulacro de Examen</h3>
+        <p>Examen Modelo A (1ª Ev) resuelto al 100%. Corrección de los errores típicos del código a medias y soluciones explicadas.</p>
+        <ul class="card-list">
+          <li><strong>Ej 1 (4 pts):</strong> Login/Registro con procesos cifradores</li>
+          <li><strong>Ej 2 (2.5 pts):</strong> Conteo concurrente de dígitos con semáforo</li>
+          <li><strong>Ej 3 (3.5 pts):</strong> 4 hilos clasificadores con semáforos independientes</li>
+        </ul>
+        <a href={withBase("/simulacro-examen")} class="card-link font-bold text-rose">Ver Examen Completo →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Big Comparison Table: Proceso vs Hilo -->
+  <section class="section-container">
+    <h2>Tabla Comparativa Definitiva: Proceso vs Hilo (Thread)</h2>
+    <p>Esta es una de las preguntas teóricas fijas en cualquier examen de PSP:</p>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Característica</th>
+            <th>Proceso (Process)</th>
+            <th>Hilo (Thread)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Definición</strong></td>
+            <td>Programa en ejecución con su propio espacio de memoria virtual y recursos del SO.</td>
+            <td>Unidad básica de ejecución en CPU dentro del contexto de un proceso.</td>
+          </tr>
+          <tr>
+            <td><strong>Espacio de Memoria</strong></td>
+            <td><strong>Aislado e independiente</strong>. Cada proceso tiene su propia imagen de memoria.</td>
+            <td><strong>Compartido</strong>. Todos los hilos del mismo proceso comparten código, heap y variables estáticas.</td>
+          </tr>
+          <tr>
+            <td><strong>Recursos Propios</strong></td>
+            <td>PCB, tabla de descriptores de ficheros, espacio de direcciones completo.</td>
+            <td>Contador de programa (PC), registros de la CPU y pila de llamadas (Stack).</td>
+          </tr>
+          <tr>
+            <td><strong>Sobrecarga (Overhead)</strong></td>
+            <td>Alta. Crear o cambiar de contexto un proceso requiere intervención profunda del SO.</td>
+            <td>Baja ("proceso ligero"). Crear o alternar hilos es mucho más rápido y consume menos memoria.</td>
+          </tr>
+          <tr>
+            <td><strong>Comunicación (IPC)</strong></td>
+            <td>Más costosa. Se realiza mediante <strong>Streams</strong> (stdin/stdout), pipes, sockets o memoria compartida del SO.</td>
+            <td>Muy rápida y directa. Se realiza mediante <strong>variables compartidas en memoria</strong> (requiere sincronización).</td>
+          </tr>
+          <tr>
+            <td><strong>Riesgo de Concurrencia</strong></td>
+            <td>No hay condiciones de carrera sobre memoria interna porque no comparten variables.</td>
+            <td><strong>Alto riesgo</strong> de condiciones de carrera, interbloqueos (deadlocks) e inconsistencia de memoria.</td>
+          </tr>
+          <tr>
+            <td><strong>Clases Clave en Java</strong></td>
+            <td><code>ProcessBuilder</code>, <code>Process</code>, <code>Runtime</code>.</td>
+            <td><code>Thread</code>, <code>Runnable</code>, <code>Semaphore</code>, <code>synchronized</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Alerta Examen: Las 3 Reglas de Oro -->
+  <section class="section-container">
+    <div class="callout callout-exam">
+      <h4>🚨 Las 3 Reglas de Oro para Aprobar el Examen</h4>
+      <ol>
+        <li>
+          <strong>En Procesos: Cierra siempre el OutputStream del hijo.</strong> 
+          Cuando el padre envía datos al hijo con <code>ps.println(...)</code>, debes hacer <code>ps.flush()</code> y <code>ps.close()</code>. Si no lo cierras, el hijo se queda esperando eternamente en <code>readLine()</code> porque el flujo nunca finaliza.
+        </li>
+        <li>
+          <strong>En Hilos: El Semaphore DEBE ser <code>static</code> (o compartido).</strong>
+          Si defines <code>Semaphore sem = new Semaphore(1);</code> dentro de la clase <code>Hilo</code> como atributo de instancia normal, ¡cada hilo tendrá su propio semáforo y ninguno se esperará!
+        </li>
+        <li>
+          <strong>En el Main: Usa siempre <code>join()</code> para esperar a los hilos.</strong>
+          Si imprimes el resultado global antes de que los hilos terminen con <code>hilo.join()</code>, el resultado siempre será 0 o un valor incompleto.
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Quick Links Grid -->
+  <section class="section-container">
+    <h2>Navegación Rápida por el Material</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>📦 Guía de Artefactos JAR</h3>
+        <p>Aprende a empaquetar tus subprocesos en un archivo <code>.jar</code> desde IntelliJ IDEA con su archivo <code>MANIFEST.MF</code> para ejecutarlos con <code>ProcessBuilder</code>.</p>
+        <a href={withBase("/artefactos-jar")} class="card-link">Ver tutorial paso a paso →</a>
+      </div>
+
+      <div class="card">
+        <h3>📝 Ejercicios de Clase Resueltos</h3>
+        <p>10 ejercicios prácticos completos (5 de Procesos y 5 de Hilos) con enunciados, explicaciones y código Java listo para compilar y ejecutar.</p>
+        <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+          <a href={withBase("/ejercicios-tema1")} class="card-link">Ejercicios T1 →</a>
+          <a href={withBase("/ejercicios-tema2")} class="card-link">Ejercicios T2 →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero {
+    padding: 3rem 0 2.5rem;
+    text-align: center;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .hero-title {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 2rem;
+  }
+
+  .hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.4rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.35);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.45);
+  }
+
+  .btn-secondary {
+    background: var(--bg-surface-elevated);
+    color: var(--accent);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+
+  .btn-secondary:hover {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+  }
+
+  .btn-outline:hover {
+    background: var(--bg-surface);
+  }
+
+  .section-container {
+    margin-top: 3.5rem;
+  }
+
+  .section-title {
+    margin-bottom: 1.5rem;
+  }
+
+  .card-header-icon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .card-list {
+    margin: 1rem 0 1.25rem;
+    font-size: 0.88rem;
+    padding-left: 1.2rem;
+  }
+
+  .card-link {
+    display: inline-block;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: transform 0.2s;
+  }
+
+  .card-link:hover {
+    transform: translateX(4px);
+    text-decoration: underline;
+  }
+
+  .text-rose {
+    color: #f43f5e !important;
+  }
+
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2.2rem;
+    }
+    .hero-actions {
+      flex-direction: column;
+    }
+  }
+</style>

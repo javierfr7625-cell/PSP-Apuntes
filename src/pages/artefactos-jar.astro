@@ -1,0 +1,201 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Guía Paso a Paso: Crear Artefactos JAR en IntelliJ IDEA" activePage="jar">
+  <div class="header-section">
+    <span class="badge badge-emerald">Herramientas e IDE</span>
+    <h1>Creación de Artefactos JAR en IntelliJ IDEA</h1>
+    <p class="lead">
+      Tutorial paso a paso basado en las instrucciones oficiales del profesor para compilar y empaquetar subprocesos en archivos <code>.jar</code> ejecutables y lanzarlos desde el proceso padre con <code>ProcessBuilder</code>.
+    </p>
+  </div>
+
+  <!-- Alerta importante de regeneración -->
+  <div class="callout callout-exam">
+    <h4>🚨 REGLA VITAL DE EXAMEN: Volver a hacer Build tras cada cambio</h4>
+    <p>
+      Si modificas cualquier línea de código dentro de una clase que forma parte de un subproceso (como <code>Encriptar.java</code> o <code>Desencriptar.java</code>), <strong>el archivo <code>.jar</code> NO se actualiza automáticamente</strong>. Debes ir siempre a:
+    </p>
+    <p>
+      <strong>Menú superior &gt; Build &gt; Build Artifacts... &gt; Seleccionar el JAR &gt; Rebuild</strong>. Si no lo haces, seguirás ejecutando la versión antigua sin tus correcciones.
+    </p>
+  </div>
+
+  <!-- Paso a paso con tarjetas -->
+  <section class="section-container">
+    <h2>Los 18 Pasos Oficiales para Crear el JAR</h2>
+
+    <div class="timeline">
+      <!-- Paso 1-4 -->
+      <div class="timeline-step">
+        <div class="step-number">1 - 4</div>
+        <div class="step-content">
+          <h3>Abrir la Configuración de Artefactos</h3>
+          <ul>
+            <li>Abre el menú <strong>File &gt; Project Structure</strong> (o pulsa el atajo <code>Ctrl + Alt + Shift + S</code>).</li>
+            <li>En la barra lateral izquierda, selecciona la pestaña <strong>Artifacts</strong>.</li>
+            <li>Haz clic en el icono verde <strong>+ (Add)</strong>.</li>
+            <li>Selecciona <strong>JAR &gt; Empty</strong>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Paso 5-7 -->
+      <div class="timeline-step">
+        <div class="step-number">5 - 7</div>
+        <div class="step-content">
+          <h3>Nombrar el JAR y Añadir los Elementos</h3>
+          <ul>
+            <li>En el campo <em>Name</em>, sustituye <code>&lt;unnamed&gt;</code> por el nombre deseado del artefacto (ejemplo: <code>Encriptar</code> o <code>cuentaletras</code>).</li>
+            <li>En la columna derecha <strong>Available Elements</strong>, haz clic con el <strong>botón derecho</strong> sobre el elemento de tu módulo/proyecto.</li>
+            <li>Elige la opción <strong>Put into Output root</strong>.</li>
+            <li>Haz clic sobre el archivo <code>.jar</code> en el árbol izquierdo para seleccionarlo.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Paso 8-11 -->
+      <div class="timeline-step">
+        <div class="step-number">8 - 11</div>
+        <div class="step-content">
+          <h3>Crear el Fichero MANIFEST.MF</h3>
+          <p>El fichero manifest le dice a la máquina virtual de Java qué clase contiene el método <code>main()</code> ejecutable:</p>
+          <ul>
+            <li>Haz clic en el botón <strong>Create Manifest...</strong></li>
+            <li>Selecciona la raíz de tu proyecto y crea la carpeta <code>manifest</code> si no existe.</li>
+            <li>Crea dentro una subcarpeta con el nombre de tu JAR (ej: <code>manifest/Encriptar</code>).</li>
+            <li>En el campo <strong>Main Class</strong>, haz clic en los tres puntos <code>...</code> y selecciona la clase principal correspondiente a este subproceso (por ejemplo <code>ejercicio1.Encriptar</code>).</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Paso 12-16 -->
+      <div class="timeline-step">
+        <div class="step-number">12 - 16</div>
+        <div class="step-content">
+          <h3>Guardar y Compilar el Artefacto (Build)</h3>
+          <ul>
+            <li>Pulsa <strong>OK</strong> en la ventana del manifest y luego <strong>OK / Apply</strong> en la ventana de Project Structure.</li>
+            <li>En la barra de menús superior de IntelliJ IDEA, ve a <strong>Build &gt; Build Artifacts...</strong></li>
+            <li>En el menú desplegable que aparece, selecciona tu artefacto (ej: <code>Encriptar:jar</code>) y pulsa <strong>Build</strong> (o <strong>Rebuild</strong>).</li>
+            <li>Verás cómo se genera en la raíz de tu proyecto la carpeta: <code>out/artifacts/NombreJar/NombreJar.jar</code>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Paso 17-18 -->
+      <div class="timeline-step">
+        <div class="step-number">17 - 18</div>
+        <div class="step-content">
+          <h3>Copiar la Ruta Relativa y Usarla en el Padre</h3>
+          <ul>
+            <li>En el árbol de archivos de IntelliJ, haz clic derecho sobre el <code>.jar</code> recién generado &gt; <strong>Copy Path/Reference... &gt; Path From Content Root</strong>.</li>
+            <li>Pega esa ruta relativa exacta en el array de comandos del <code>ProcessBuilder</code> dentro de la clase Padre:</li>
+          </ul>
+
+          <div class="code-wrapper">
+            <pre><code>// Comando canónico en la clase Padre:
+String[] comando = &#123;
+    "java", 
+    "-jar", 
+    "out/artifacts/Encriptar/Encriptar.jar"
+&#125;;
+
+Process proceso = new ProcessBuilder(comando).start();</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Solución de Errores Comunes -->
+  <section class="section-container">
+    <h2>Solución a los 3 Errores Más Frecuentes con JARs</h2>
+
+    <div class="grid-3">
+      <div class="card card-accent-rose">
+        <h3>1. "no main manifest attribute, in out/..."</h3>
+        <p><strong>Causa:</strong> Creaste el JAR sin asignar el <code>Main-Class</code> o el archivo <code>MANIFEST.MF</code> no se incluyó en la raíz del JAR.</p>
+        <p><strong>Solución:</strong> Vuelve a Project Structure &gt; Artifacts, elimina el artefacto, repite los pasos asegurándote de pulsar <em>Create Manifest</em> y elegir la clase con <code>public static void main</code>.</p>
+      </div>
+
+      <div class="card card-accent-rose">
+        <h3>2. "Cannot run program java: CreateProcess error=2"</h3>
+        <p><strong>Causa:</strong> La ruta del JAR no existe o está mal escrita (mayúsculas/minúsculas distintas, falta un directorio).</p>
+        <p><strong>Solución:</strong> Comprueba con el explorador de archivos que el <code>.jar</code> está físicamente presente dentro de <code>out/artifacts/TuJar/TuJar.jar</code>.</p>
+      </div>
+
+      <div class="card card-accent-rose">
+        <h3>3. Modifico el código del hijo pero el padre sigue mostrando lo viejo</h3>
+        <p><strong>Causa:</strong> Solo guardaste el archivo <code>.java</code> pero no reconstruiste el artefacto empaquetado.</p>
+        <p><strong>Solución:</strong> Siempre que toques el hijo, haz <strong>Build &gt; Build Artifacts &gt; Rebuild</strong> antes de volver a ejecutar el padre.</p>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .header-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .lead {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    max-width: 850px;
+    margin-top: 0.5rem;
+  }
+
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin: 2rem 0;
+  }
+
+  .timeline-step {
+    display: flex;
+    gap: 1.5rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.2s;
+  }
+
+  .timeline-step:hover {
+    border-color: var(--accent);
+  }
+
+  .step-number {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--accent);
+    background: var(--bg-surface-elevated);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 10px;
+    padding: 0.5rem 0.9rem;
+    height: fit-content;
+    white-space: nowrap;
+  }
+
+  .step-content {
+    flex: 1;
+  }
+
+  .step-content h3 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: #ffffff;
+    font-size: 1.2rem;
+  }
+
+  @media (max-width: 640px) {
+    .timeline-step {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+  }
+</style>
+

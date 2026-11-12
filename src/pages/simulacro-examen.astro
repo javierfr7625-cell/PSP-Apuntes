@@ -1,0 +1,699 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Simulacro de Examen Resuelto (Modelo A)" activePage="simulacro">
+  <div class="header-section">
+    <div class="exam-pill">
+      <span class="badge badge-rose">Oficial · Primera Evaluación</span>
+      <span class="exam-score">Puntuación Total: 10 Puntos</span>
+    </div>
+    <h1>Simulacro de Examen Resuelto al 100%</h1>
+    <p class="lead">
+      Resolución íntegra del examen oficial de PSP (Modelo A), corrección minuciosa de los errores del código que tenías a medias y explicación de cómo conseguir la máxima nota (10/10).
+    </p>
+  </div>
+
+  <!-- Diagnóstico de los fallos encontrados en tu código a medias -->
+  <section class="section-container">
+    <h2>🔍 Diagnóstico: ¿Por qué fallaba tu código inicial?</h2>
+    <p>
+      Hemos analizado el proyecto que tenías en <code>Simulacro/PSPsimulacro/src</code>. Tenías varios errores críticos que impedían que compilara o funcionara correctamente. Aquí tienes el desglose exacto de lo que ocurría:
+    </p>
+
+    <div class="grid-3">
+      <div class="card card-accent-rose">
+        <h3>En Ejercicio 1 (Main)</h3>
+        <ul>
+          <li><strong>Método main no estático:</strong> Tenías <code>void main(String[] args)</code> en lugar de <code>public static void main</code>. Java no podía arrancar la aplicación.</li>
+          <li><strong>Condición invertida:</strong> En <code>acreditarse()</code> tenías <code>if (usuario.equals(nuevoUsuario))</code> mostrando "Usuario incorrecto" cuando el nombre sí era igual.</li>
+          <li><strong>Retornos a null:</strong> En <code>crearProceso</code>, <code>generarProcesoEncriptar</code> y <code>leerDesdeProceso</code> se devolvía <code>return null;</code>, provocando <code>NullPointerException</code>.</li>
+          <li><strong>Falta de comprobación:</strong> Si seleccionabas la opción 2 antes de la 1, el programa petaba por no verificar si ya había usuario registrado.</li>
+        </ul>
+      </div>
+
+      <div class="card card-accent-rose">
+        <h3>En Ejercicio 2 (Hilo)</h3>
+        <ul>
+          <li><strong>Semáforo de instancia (FATAL):</strong> Declaraste <code>Semaphore semaphore = new Semaphore(1);</code> sin la palabra clave <code>static</code>.</li>
+          <li>Al hacer <code>new Hilo(...)</code> 10 veces en el bucle, creabas <strong>10 semáforos distintos</strong>.</li>
+          <li>Ningún hilo esperaba a los otros al modificar <code>numeros++</code>, destruyendo la exclusión mutua.</li>
+          <li>Se ha corregido cambiando a <code>public static Semaphore semaphore = new Semaphore(1);</code>.</li>
+        </ul>
+      </div>
+
+      <div class="card card-accent-rose">
+        <h3>En Ejercicio 3 (Sin hacer)</h3>
+        <ul>
+          <li>El paquete <code>ejercicio3</code> ni siquiera existía en el proyecto original.</li>
+          <li>Valía <strong>3,5 puntos de los 10 del examen</strong>.</li>
+          <li>Hemos desarrollado desde cero <code>HiloPalabras.java</code> y <code>Ejercicio3Main.java</code> cumpliendo todos los requisitos de filtrado, semáforos independientes y la parada obligatoria de 5ms.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ejercicio 1 Examen -->
+  <section id="ejercicio-1-examen" class="section-container">
+    <div class="exercise-header">
+      <span class="badge badge-rose">Ejercicio 1 · 4 Puntos</span>
+      <h2>Registro y Login con Subprocesos de Cifrado César</h2>
+    </div>
+
+    <div class="card card-accent-sky">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Crear un programa que realice el registro y login de un usuario en una aplicación. Para ello tendrá que encriptar y desencriptar la contraseña mediante subprocesos (hijos).
+      </p>
+      <ul>
+        <li><strong>Menú:</strong> 1. Registrarse, 2. Acreditarse, 3. Salir.</li>
+        <li><strong>Registrarse:</strong> Guarda el usuario en variable global y encripta la contraseña con el subproceso <code>Encriptar</code> (+2 en cada carácter ASCII). Guarda la contraseña encriptada en una variable global.</li>
+        <li><strong>Acreditarse:</strong> Si no está registrado avisa y vuelve al menú. Si está registrado, pide el nombre de usuario hasta que sea correcto. Luego pide la contraseña, desencripta la guardada con el subproceso <code>Desencriptar</code> (-2 en cada carácter) y comprueba. Si coinciden: "Bienvenido [usuario]!!!". Si no, sigue preguntando hasta que sea correcta.</li>
+      </ul>
+    </div>
+
+    <!-- Pestañas Interactivas del Ejercicio 1 -->
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-btn active">ejercicio1Main.java (Padre Corregido)</button>
+        <button class="tab-btn">Encriptar.java (Hijo 1)</button>
+        <button class="tab-btn">Desencriptar.java (Hijo 2)</button>
+        <button class="tab-btn">Captura de Ejecución Esperada</button>
+      </div>
+
+      <div class="tab-content active">
+        <pre><code>package ejercicio1;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+
+public class ejercicio1Main &#123;
+    // Variables globales para persistir el usuario registrado y su contraseña encriptada
+    private static String usuario = null;
+    private static String passwordEnc = null;
+
+    public static void main(String[] args) &#123;
+        String opcion = "3";
+        do &#123;
+            mostrarOpciones();
+            opcion = recogerString();
+            realizarOpcion(opcion);
+        &#125; while (!opcion.equals("3"));
+    &#125;
+
+    private static void mostrarOpciones() &#123;
+        System.out.println("Selecciona una de las opciones\n" +
+                "1. Registrarse.\n" +
+                "2. Acreditarse.\n" +
+                "3. Salir.");
+    &#125;
+
+    private static void realizarOpcion(String opcion) &#123;
+        switch (opcion) &#123;
+            case "1" -> registrarse();
+            case "2" -> acreditarse();
+            case "3" -> System.out.println("Saliendo...");
+            default -> System.out.println("Opción incorrecta");
+        &#125;
+    &#125;
+
+    private static void registrarse() &#123;
+        System.out.println("Dime el usuario");
+        usuario = recogerString();
+
+        System.out.println("Dime el password");
+        String password = recogerString();
+
+        // Lanzamos el subproceso hijo Encriptar.jar
+        Process procesoEncriptar = generarProcesoEncriptar();
+        if (procesoEncriptar != null) &#123;
+            escribirEnProceso(password, procesoEncriptar);
+            passwordEnc = leerDesdeProceso(procesoEncriptar);
+            try &#123;
+                procesoEncriptar.waitFor();
+            &#125; catch (InterruptedException e) &#123;
+                Thread.currentThread().interrupt();
+            &#125;
+            System.out.println("Registrado correctamente");
+        &#125; else &#123;
+            System.out.println("Error al lanzar el subproceso Encriptar");
+        &#125;
+    &#125;
+
+    private static void acreditarse() &#123;
+        // Validación 1: Verificar si el usuario se registró previamente
+        if (usuario == null || passwordEnc == null) &#123;
+            System.out.println("Primero hay que registrarse");
+            return;
+        &#125;
+
+        // Bucle hasta que el usuario introducido coincida con el registrado
+        String nuevoUsuario = "";
+        do &#123;
+            System.out.println("Dime el usuario");
+            nuevoUsuario = recogerString();
+            if (!usuario.equals(nuevoUsuario)) &#123;
+                System.out.println("Usuario incorrecto");
+            &#125;
+        &#125; while (!usuario.equals(nuevoUsuario));
+
+        // Bucle hasta que el password coincida con la desencriptación del subproceso
+        String password = "";
+        String passwordDesenc = "";
+        do &#123;
+            System.out.println("Dime el password");
+            password = recogerString();
+            passwordDesenc = desenCriptarPassword();
+            if (!password.equals(passwordDesenc)) &#123;
+                System.out.println("Password incorrecto");
+            &#125;
+        &#125; while (!password.equals(passwordDesenc));
+
+        System.out.println("Bienvenido " + usuario + "!!!");
+    &#125;
+
+    private static String desenCriptarPassword() &#123;
+        String[] comandoDesencriptar = {"java", "-jar", "out/artifacts/Desencriptar/Desencriptar.jar"};
+        Process proceso = crearProceso(comandoDesencriptar);
+        if (proceso != null) &#123;
+            escribirEnProceso(passwordEnc, proceso);
+            String respuesta = leerDesdeProceso(proceso);
+            try &#123;
+                proceso.waitFor();
+            &#125; catch (InterruptedException e) &#123;
+                Thread.currentThread().interrupt();
+            &#125;
+            return respuesta;
+        &#125;
+        return "";
+    &#125;
+
+    private static Process generarProcesoEncriptar() &#123;
+        String[] comandoEncriptar = {"java", "-jar", "out/artifacts/Encriptar/Encriptar.jar"};
+        return crearProceso(comandoEncriptar);
+    &#125;
+
+    private static Process crearProceso(String[] comando) &#123;
+        ProcessBuilder pb = new ProcessBuilder(comando);
+        Process proceso = null;
+        try &#123;
+            proceso = pb.start();
+        &#125; catch (IOException e) &#123;
+            System.out.println("Error al crear el proceso: " + e.getMessage());
+        &#125;
+        return proceso; // ¡Devuelve la instancia, nunca null!
+    &#125;
+
+    private static void escribirEnProceso(String password, Process proceso) &#123;
+        PrintStream ps = new PrintStream(proceso.getOutputStream());
+        ps.println(password);
+        ps.flush();
+        ps.close(); // Crucial para que el hijo termine su readLine()
+    &#125;
+
+    private static String leerDesdeProceso(Process proceso) &#123;
+        BufferedReader br = new BufferedReader(new InputStreamReader(proceso.getInputStream()));
+        String respuesta = "";
+        try &#123;
+            respuesta = br.readLine();
+        &#125; catch (IOException e) &#123;
+            System.out.println("Error al leer respuesta: " + e.getMessage());
+        &#125;
+        return respuesta; // ¡Devuelve la cadena leída!
+    &#125;
+
+    private static String recogerString() &#123;
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String respuesta = "";
+        try &#123;
+            respuesta = br.readLine();
+        &#125; catch (IOException e) &#123;
+            System.out.println("Error al leer de teclado: " + e.getMessage());
+        &#125;
+        return respuesta;
+    &#125;
+&#125;</code></pre>
+      </div>
+
+      <div class="tab-content">
+        <pre><code>package ejercicio1;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class Encriptar &#123;
+    public static void main(String[] args) &#123;
+        String password = recogerString();
+        StringBuilder passwordEncriptado = new StringBuilder();
+
+        // Cifrado César +2: cada carácter se desplaza 2 posiciones en ASCII
+        // Ejemplo: 'Progresa' -&gt; 'Rtqitguc'
+        char[] letras = password.toCharArray();
+        for (char letra : letras) &#123;
+            passwordEncriptado.append((char) (letra + 2));
+        &#125;
+
+        System.out.println(passwordEncriptado);
+    &#125;
+
+    private static String recogerString() &#123;
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String respuesta = "";
+        try &#123;
+            respuesta = br.readLine();
+        &#125; catch (IOException e) &#123;
+            System.out.println(e.getMessage());
+        &#125;
+        return respuesta;
+    &#125;
+&#125;</code></pre>
+      </div>
+
+      <div class="tab-content">
+        <pre><code>package ejercicio1;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class Desencriptar &#123;
+    public static void main(String[] args) &#123;
+        String passwordEncriptada = recogerString();
+        StringBuilder passwordDesencriptada = new StringBuilder();
+
+        // Descifrado César -2: cada carácter se desplaza -2 posiciones
+        // Ejemplo: 'Rtqitguc' -&gt; 'Progresa'
+        char[] letras = passwordEncriptada.toCharArray();
+        for (char letra : letras) &#123;
+            passwordDesencriptada.append((char) (letra - 2));
+        &#125;
+
+        System.out.println(passwordDesencriptada);
+    &#125;
+
+    private static String recogerString() &#123;
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String respuesta = "";
+        try &#123;
+            respuesta = br.readLine();
+        &#125; catch (IOException e) &#123;
+            System.out.println(e.getMessage());
+        &#125;
+        return respuesta;
+    &#125;
+&#125;</code></pre>
+      </div>
+
+      <div class="tab-content">
+        <div style="background: #020617; border: 1px solid #1e293b; padding: 1.25rem; border-radius: 8px; font-family: monospace; font-size: 0.9rem; color: #38bdf8;">
+Selecciona una de las opciones<br>
+1. Registrarse.<br>
+2. Acreditarse.<br>
+3. Salir.<br>
+<span style="color: #4ade80;">2</span><br>
+Primero hay que registrarse<br>
+Selecciona una de las opciones<br>
+1. Registrarse.<br>
+2. Acreditarse.<br>
+3. Salir.<br>
+<span style="color: #4ade80;">1</span><br>
+Dime el usuario<br>
+<span style="color: #4ade80;">test</span><br>
+Dime el password<br>
+<span style="color: #4ade80;">test</span><br>
+Registrado correctamente<br>
+Selecciona una de las opciones<br>
+1. Registrarse.<br>
+2. Acreditarse.<br>
+3. Salir.<br>
+<span style="color: #4ade80;">2</span><br>
+Dime el usuario<br>
+<span style="color: #4ade80;">alfa</span><br>
+Usuario incorrecto<br>
+Dime el usuario<br>
+<span style="color: #4ade80;">test</span><br>
+Dime el password<br>
+<span style="color: #4ade80;">alfa</span><br>
+Password incorrecto<br>
+Dime el password<br>
+<span style="color: #4ade80;">test</span><br>
+Bienvenido test!!!<br>
+Selecciona una de las opciones<br>
+1. Registrarse.<br>
+2. Acreditarse.<br>
+3. Salir.<br>
+<span style="color: #4ade80;">3</span><br>
+Saliendo...<br>
+Process finished with exit code 0
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ejercicio 2 Examen -->
+  <section id="ejercicio-2-examen" class="section-container">
+    <div class="exercise-header">
+      <span class="badge badge-rose">Ejercicio 2 · 2,5 Puntos</span>
+      <h2>Conteo Concurrente de Números con 10 Hilos y Semáforo</h2>
+    </div>
+
+    <div class="card card-accent-purple">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Crear un programa que recoja una frase del usuario, cuente mediante hilos y de manera controlada con <strong>semáforos</strong> la cantidad de números que aparecen en la frase.
+      </p>
+      <ul>
+        <li>Tendremos <strong>10 hilos</strong>, uno por cada dígito ('0', '1', ..., '9').</li>
+        <li>Cada hilo contará las apariciones de su número en la frase y lo guardará en su variable <strong>local</strong> y en la variable <strong>global</strong>.</li>
+        <li>Al terminar dirá cuántas veces ha aparecido ese número.</li>
+        <li>El programa principal avisará cuando todos los hilos hayan terminado del número total de números en la frase.</li>
+      </ul>
+    </div>
+
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-btn active">Hilo.java (Corregido)</button>
+        <button class="tab-btn">principal.java (Main Corregido)</button>
+      </div>
+
+      <div class="tab-content active">
+        <pre><code>package ejercicio2;
+
+import java.util.concurrent.Semaphore;
+
+public class Hilo extends Thread &#123;
+    // REGLA CLAVE: El semáforo DEBE ser static para que sea compartido por los 10 hilos
+    public static Semaphore semaphore = new Semaphore(1);
+    
+    // Variable global acumuladora
+    public static int numeros = 0;
+
+    private String frase;
+
+    public Hilo(String digito, String frase) &#123;
+        super(digito); // Asigna el dígito como nombre del hilo ("0", "1", ..., "9")
+        this.frase = frase;
+        start(); // Autoarranque del hilo
+    &#125;
+
+    @Override
+    public void run() &#123;
+        int contadorLocal = 0; // Variable local de este hilo
+        char[] letras = frase.toCharArray();
+
+        for (char letra : letras) &#123;
+            // Si el carácter coincide con el dígito asignado a este hilo
+            if (String.valueOf(letra).equals(getName())) &#123;
+                try &#123;
+                    // Sección Crítica: modificar variable global compartida
+                    semaphore.acquire();
+                    numeros++;
+                &#125; catch (InterruptedException e) &#123;
+                    Thread.currentThread().interrupt();
+                &#125; finally &#123;
+                    semaphore.release();
+                &#125;
+                contadorLocal++;
+            &#125;
+        &#125;
+
+        // Cada hilo imprime su recuento local al terminar
+        System.out.println("El número " + getName() + " ha aparecido " + contadorLocal + " veces");
+    &#125;
+&#125;</code></pre>
+      </div>
+
+      <div class="tab-content">
+        <pre><code>package ejercicio2;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+
+public class principal &#123;
+    public static void main(String[] args) &#123;
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        ArrayList&lt;Hilo&gt; hilos = new ArrayList&lt;&gt;();
+        String frase = "";
+
+        System.out.println("dime tu frase de numeros ");
+        try &#123;
+            frase = br.readLine();
+        &#125; catch (IOException e) &#123;
+            throw new RuntimeException(e);
+        &#125;
+
+        // Crear los 10 hilos (del '0' al '9')
+        for (int i = 0; i &lt; 10; i++) &#123;
+            hilos.add(new Hilo(String.valueOf(i), frase));
+        &#125;
+
+        // Esperar a que terminen TODOS los hilos antes de imprimir el resultado
+        for (Hilo h : hilos) &#123;
+            try &#123;
+                h.join();
+            &#125; catch (InterruptedException e) &#123;
+                throw new RuntimeException(e);
+            &#125;
+        &#125;
+
+        // Informar del total acumulado en la variable global
+        System.out.println("Total de números encontrados en la frase: " + Hilo.numeros);
+    &#125;
+&#125;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ejercicio 3 Examen -->
+  <section id="ejercicio-3-examen" class="section-container">
+    <div class="exercise-header">
+      <span class="badge badge-rose">Ejercicio 3 · 3,5 Puntos</span>
+      <h2>Clasificador de Palabras con 4 Hilos y Semáforos Independientes</h2>
+    </div>
+
+    <div class="card card-accent-emerald">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Crear un programa que recoja una frase del usuario y mediante 4 hilos llamados: <strong>“2”, “4”, “6” y “8”</strong> y la frase, calcule el número de palabras con semáforos, donde sólo podrá entrar un hilo simultáneamente, de la siguiente manera:
+      </p>
+      <ul>
+        <li>El hilo <strong>“2”</strong> contará las palabras de 2 o menos letras.</li>
+        <li>El hilo <strong>“4”</strong> contará las palabras de 3 y 4 letras.</li>
+        <li>El hilo <strong>“6”</strong> contará las palabras de 5 y 6 letras.</li>
+        <li>El hilo <strong>“8”</strong> contará las palabras de más de 6 letras.</li>
+        <li>Si tiene menos de 5 letras se cuenta en la variable global <strong>“menos5”</strong>.</li>
+        <li>Si tiene 5 o más letras se cuenta en la variable global <strong>“5omas”</strong> (en Java <code>_5omas</code>).</li>
+        <li><strong>El acceso a “menos5” y a “5omas” es independiente</strong> (requiere dos semáforos separados).</li>
+        <li>Cada hilo deberá parar <strong>5ms después de contar cada palabra</strong> (<code>Thread.sleep(5)</code>).</li>
+        <li>Al terminar todos los hilos, el programa principal sacará cuántas palabras hay con menos de 5 letras y cuántas con 5 o más.</li>
+      </ul>
+    </div>
+
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-btn active">HiloPalabras.java (Completo)</button>
+        <button class="tab-btn">Ejercicio3Main.java (Completo)</button>
+      </div>
+
+      <div class="tab-content active">
+        <pre><code>package ejercicio3;
+
+import java.util.concurrent.Semaphore;
+
+public class HiloPalabras extends Thread &#123;
+    // Variables globales requeridas por el enunciado
+    public static int menos5 = 0;
+    // En Java un identificador no puede empezar con un número, por lo que se define _5omas
+    public static int _5omas = 0;
+
+    // SEMÁFOROS INDEPENDIENTES:
+    // Permiten que el hilo '2' o '4' acceda a menos5 mientras el hilo '6' u '8' accede a _5omas
+    public static Semaphore semMenos5 = new Semaphore(1);
+    public static Semaphore sem5omas = new Semaphore(1);
+
+    private String frase;
+
+    public HiloPalabras(String nombre, String frase) &#123;
+        super(nombre);
+        this.frase = frase;
+        start();
+    &#125;
+
+    @Override
+    public void run() &#123;
+        // Dividimos la frase en palabras separadas por espacios
+        String[] palabras = frase.trim().split("\\s+");
+
+        for (String p : palabras) &#123;
+            // Limpiar signos de puntuación para medir solo caracteres de letras
+            String palabraLimpia = p.replaceAll("[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]", "");
+            int longitud = palabraLimpia.length();
+            if (longitud == 0) continue;
+
+            boolean haContado = false;
+
+            switch (getName()) &#123;
+                case "2" -&gt; &#123;
+                    if (longitud &lt;= 2) &#123;
+                        haContado = true;
+                        try &#123;
+                            semMenos5.acquire();
+                            menos5++;
+                        &#125; catch (InterruptedException e) &#123;
+                            Thread.currentThread().interrupt();
+                        &#125; finally &#123;
+                            semMenos5.release();
+                        &#125;
+                    &#125;
+                &#125;
+                case "4" -&gt; &#123;
+                    if (longitud &gt;= 3 && longitud &lt;= 4) &#123;
+                        haContado = true;
+                        try &#123;
+                            semMenos5.acquire();
+                            menos5++;
+                        &#125; catch (InterruptedException e) &#123;
+                            Thread.currentThread().interrupt();
+                        &#125; finally &#123;
+                            semMenos5.release();
+                        &#125;
+                    &#125;
+                &#125;
+                case "6" -&gt; &#123;
+                    if (longitud &gt;= 5 && longitud &lt;= 6) &#123;
+                        haContado = true;
+                        try &#123;
+                            sem5omas.acquire();
+                            _5omas++;
+                        &#125; catch (InterruptedException e) &#123;
+                            Thread.currentThread().interrupt();
+                        &#125; finally &#123;
+                            sem5omas.release();
+                        &#125;
+                    &#125;
+                &#125;
+                case "8" -&gt; &#123;
+                    if (longitud &gt; 6) &#123;
+                        haContado = true;
+                        try &#123;
+                            sem5omas.acquire();
+                            _5omas++;
+                        &#125; catch (InterruptedException e) &#123;
+                            Thread.currentThread().interrupt();
+                        &#125; finally &#123;
+                            sem5omas.release();
+                        &#125;
+                    &#125;
+                &#125;
+            &#125;
+
+            // Cada hilo deberá parar 5ms después de contar cada palabra
+            if (haContado) &#123;
+                try &#123;
+                    Thread.sleep(5);
+                &#125; catch (InterruptedException e) &#123;
+                    Thread.currentThread().interrupt();
+                &#125;
+            &#125;
+        &#125;
+    &#125;
+&#125;</code></pre>
+      </div>
+
+      <div class="tab-content">
+        <pre><code>package ejercicio3;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+
+public class Ejercicio3Main &#123;
+    public static void main(String[] args) &#123;
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println("Introduce una frase para clasificar palabras por longitud:");
+        String frase = "";
+
+        try &#123;
+            frase = br.readLine();
+        &#125; catch (IOException e) &#123;
+            System.out.println("Error de entrada: " + e.getMessage());
+            return;
+        &#125;
+
+        // Crear los 4 hilos: "2", "4", "6" y "8"
+        String[] nombresHilos = {"2", "4", "6", "8"};
+        ArrayList&lt;HiloPalabras&gt; hilos = new ArrayList&lt;&gt;();
+
+        for (String nombre : nombresHilos) &#123;
+            hilos.add(new HiloPalabras(nombre, frase));
+        &#125;
+
+        // Esperar a que terminen los 4 hilos
+        for (HiloPalabras h : hilos) &#123;
+            try &#123;
+                h.join();
+            &#125; catch (InterruptedException e) &#123;
+                System.out.println("Error al esperar al hilo: " + e.getMessage());
+            &#125;
+        &#125;
+
+        // Imprimir los resultados solicitados
+        System.out.println("\n===== RESULTADOS =====");
+        System.out.println("Palabras con menos de 5 letras (menos5): " + HiloPalabras.menos5);
+        System.out.println("Palabras con 5 o más letras (5omas):   " + HiloPalabras._5omas);
+    &#125;
+&#125;</code></pre>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .header-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .exam-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .exam-score {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fb7185;
+  }
+
+  .lead {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    max-width: 850px;
+    margin-top: 0.5rem;
+  }
+
+  .section-container {
+    margin-bottom: 4rem;
+  }
+
+  .exercise-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .exercise-header h2 {
+    margin: 0;
+    border: none;
+    padding: 0;
+  }
+</style>
+

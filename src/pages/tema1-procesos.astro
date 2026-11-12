@@ -1,0 +1,545 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Tema 1: Procesos y Subprocesos en Java" activePage="tema1">
+  <div class="header-section">
+    <span class="badge badge-sky">Tema 1 · Teoría y Práctica</span>
+    <h1>Programación de Procesos en Java</h1>
+    <p class="lead">
+      Fundamentos del Sistema Operativo, ciclo de vida del proceso, cambio de contexto, llamadas al sistema y desarrollo de procesos hijos en Java con <code>ProcessBuilder</code> y tuberías de streams.
+    </p>
+  </div>
+
+  <!-- Indice de navegación interna -->
+  <div class="toc-card">
+    <div class="toc-title">📑 Contenidos de esta sección</div>
+    <div class="toc-grid">
+      <a href="#conceptos-basicos">1. Conceptos Básicos</a>
+      <a href="#concurrencia-paralelismo">2. Concurrencia vs Paralelismo</a>
+      <a href="#kernel-modo-dual">3. Kernel, Interrupciones y Modo Dual</a>
+      <a href="#estados-proceso">4. Estados y Colas del SO</a>
+      <a href="#planificacion">5. Planificación y Cambio de Contexto</a>
+      <a href="#procesos-java">6. Procesos en Java (ProcessBuilder)</a>
+      <a href="#comunicacion-streams">7. Comunicación Padre-Hijo con Streams</a>
+      <a href="#trampas-examen">8. Trampas de Examen T1</a>
+    </div>
+  </div>
+
+  <!-- 1. Conceptos Básicos -->
+  <section id="conceptos-basicos" class="topic-section">
+    <h2>1. Conceptos Básicos</h2>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>📄 Programa</h3>
+        <p>Conjunto de instrucciones y datos almacenados en disco de manera pasiva (fichero ejecutable o código fuente compilado). No consume CPU ni memoria RAM mientras está en reposo.</p>
+      </div>
+
+      <div class="card">
+        <h3>⚡ Proceso</h3>
+        <p>Un <strong>programa en ejecución</strong>. No es solo el código, sino una entidad activa gestionada por el Sistema Operativo que contiene:</p>
+        <ul>
+          <li><strong>Contador de programa (PC):</strong> Indica la siguiente instrucción a ejecutar.</li>
+          <li><strong>Imagen de memoria:</strong> Segmentos de código (Text), datos (Data/BSS), pila (Stack) y montículo (Heap).</li>
+          <li><strong>Estado del procesador:</strong> Contenido de los registros de la CPU y flags.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>📦 Ejecutable</h3>
+        <p>Fichero binario con el formato adecuado para que el cargador del SO cree un proceso en memoria (por ejemplo <code>.exe</code> en Windows o binario ELF en Linux).</p>
+      </div>
+
+      <div class="card">
+        <h3>👻 Demonio (Daemon)</h3>
+        <p>Proceso no interactivo que se ejecuta continuamente en <strong>segundo plano</strong> (background). Proporciona servicios esenciales para el SO o para otros programas (por ejemplo, servidores web, colas de impresión, gestores de red).</p>
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <h4>📌 ¿Qué es el Sistema Operativo (SO)?</h4>
+      <p>Es el programa que actúa como intermediario entre el usuario/aplicaciones y el hardware del ordenador. Sus funciones capitales son:</p>
+      <ul>
+        <li>Hacer de interfaz unificada para acceder a los recursos (disco, red, pantalla).</li>
+        <li>Administrar y optimizar el uso de CPU, memoria y periféricos con eficiencia.</li>
+        <li>Aislar y proteger la ejecución concurrente de los programas de usuario.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 2. Concurrencia vs Paralelismo -->
+  <section id="concurrencia-paralelismo" class="topic-section">
+    <h2>2. Programación Concurrente, Paralela y Distribuida</h2>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Arquitectura</th>
+            <th>Mecanismo</th>
+            <th>¿Mejora el tiempo total de cálculo?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Uniprocesador (1 núcleo)</strong><br><em>Multiprogramación</em></td>
+            <td>
+              El SO reparte la CPU intercalando procesos en períodos de milisegundos.
+              <strong>Solo un proceso ejecuta instrucciones en un instante dado</strong>.
+              Crea la ilusión de ejecución simultánea (concurrencia).
+            </td>
+            <td>
+              <strong>No</strong>. El tiempo total de CPU es igual o ligeramente mayor por el gasto de alternar tareas (cambio de contexto). Mejora la interactividad y la respuesta al usuario.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Multinúcleo (Multicore)</strong><br><em>Multitarea real / Paralelismo</em></td>
+            <td>
+              Cada núcleo físico puede ejecutar una instrucción distinta <strong>exactamente en el mismo instante de tiempo</strong>. Todos los núcleos comparten la misma memoria RAM.
+            </td>
+            <td>
+              <strong>Sí</strong>. Permite acelerar tareas computacionales dividiendo el trabajo entre los diferentes núcleos.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Sistemas Distribuidos</strong><br><em>Clúster / Red</em></td>
+            <td>
+              Múltiples ordenadores conectados por red. Cada máquina tiene sus propios procesadores y su <strong>propia memoria independiente</strong>.
+            </td>
+            <td>
+              <strong>Sí</strong>, para problemas masivos. Sin embargo, la comunicación entre nodos es más costosa y requiere protocolos de red (sockets, RPC, MPI).
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 3. Kernel, Interrupciones y Modo Dual -->
+  <section id="kernel-modo-dual" class="topic-section">
+    <h2>3. Kernel, Interrupciones y Modo Dual</h2>
+
+    <div class="card card-accent-sky" style="margin-bottom: 1.5rem;">
+      <h3>El Kernel (Núcleo) del Sistema Operativo</h3>
+      <p>
+        Es la parte central del SO responsable de gestionar la CPU, la memoria y los dispositivos. Aunque es el componente más crítico, representa una parte pequeña del código del SO (el resto son programas del sistema como shells, librerías y utilidades).
+      </p>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>🔔 Funcionamiento por Interrupciones</h3>
+        <p>El SO se maneja conducido por eventos e interrupciones:</p>
+        <ol>
+          <li>Ocurre un evento (reloj del procesador, petición de E/S, pulsación de tecla).</li>
+          <li>La CPU suspende temporalmente el proceso en curso.</li>
+          <li>Se deshabilitan nuevas interrupciones críticas para evitar corrupción.</li>
+          <li>Se transfiere el control a la <strong>rutina de tratamiento de la interrupción (ISR)</strong>.</li>
+          <li>Al finalizar, se reanuda el proceso original exactamente en la misma instrucción.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h3>🛡️ Modo Dual de Protección</h3>
+        <p>Mecanismo del procesador para evitar que un programa de usuario bloquee el sistema:</p>
+        <ul>
+          <li>
+            <strong>Modo Kernel (0) / Supervisor / Privilegiado:</strong> La CPU puede ejecutar cualquier instrucción de hardware y acceder a toda la memoria física.
+          </li>
+          <li>
+            <strong>Modo Usuario (1):</strong> Solo se permiten instrucciones seguras y memoria asignada al propio proceso.
+          </li>
+        </ul>
+        <p style="margin-top: 0.5rem; font-size: 0.88rem; color: var(--accent);">
+          Las <strong>Llamadas al Sistema (System Calls)</strong> son la puerta de enlace segura para pasar de Modo Usuario a Modo Kernel cuando un proceso necesita leer del disco, reservar memoria o crear otro proceso.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Estados y Colas del SO -->
+  <section id="estados-proceso" class="topic-section">
+    <h2>4. Estados de un Proceso y Colas del SO</h2>
+
+    <div class="states-diagram">
+      <div class="diagram-flow">
+        <div class="state-box state-new">Nuevo</div>
+        <div class="state-arrow">admitido ➔</div>
+        <div class="state-box state-ready">Listo (Ready)</div>
+        <div class="state-arrow">planificación ➔<br>⬅ interrupción</div>
+        <div class="state-box state-running">En Ejecución</div>
+        <div class="state-arrow">finalización ➔</div>
+        <div class="state-box state-term">Terminado</div>
+      </div>
+      <div class="diagram-bottom-flow">
+        <span class="sub-arrow">E/S o espera de evento ⬇</span>
+        <div class="state-box state-blocked">Bloqueado (Waiting)</div>
+        <span class="sub-arrow">⬆ evento completado (vuelve a Listo)</span>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top: 1.5rem;">
+      <div class="card">
+        <h3>Descripción de los 5 Estados</h3>
+        <ul>
+          <li><strong>Nuevo (New):</strong> El proceso está siendo creado a partir del ejecutable en disco.</li>
+          <li><strong>Listo (Ready):</strong> Preparado para ejecutarse, esperando que el planificador le asigne una CPU.</li>
+          <li><strong>En Ejecución (Running):</strong> Sus instrucciones se están ejecutando actualmente en la CPU.</li>
+          <li><strong>Bloqueado (Blocked/Waiting):</strong> Espera una operación de E/S o un evento. <em>¡Nunca pasa directamente a ejecución al desbloquearse, vuelve a Listo!</em></li>
+          <li><strong>Terminado (Terminated):</strong> Finalizó su ejecución; el SO libera su memoria y descriptores.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Colas de Procesos del SO</h3>
+        <p>El SO gestiona el movimiento de los procesos organizándolos en colas:</p>
+        <ul>
+          <li><strong>Cola de Procesos:</strong> Contiene a todos los procesos registrados en el sistema.</li>
+          <li><strong>Cola de Preparados (Ready Queue):</strong> Procesos en estado Listo esperando CPU.</li>
+          <li><strong>Colas de Dispositivo (Device Queues):</strong> Cada dispositivo de E/S (disco, tarjeta de red, teclado) tiene su propia cola de procesos bloqueados a la espera.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Planificación y Cambio de Contexto -->
+  <section id="planificacion" class="topic-section">
+    <h2>5. Planificación y Cambio de Contexto (Context Switch)</h2>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Planificación a Largo vs Corto Plazo</h3>
+        <p><strong>A largo plazo (Job Scheduler):</strong></p>
+        <ul>
+          <li>Decide qué nuevos procesos pasan del disco a la memoria (a la cola de preparados).</li>
+          <li>Se ejecuta con poca frecuencia (segundos o minutos).</li>
+          <li>Controla el <strong>grado de multiprogramación</strong>.</li>
+        </ul>
+        <p><strong>A corto plazo (CPU Scheduler / Dispatcher):</strong></p>
+        <ul>
+          <li>Decide qué proceso de la cola de listos pasa inmediatamente a la CPU.</li>
+          <li>Se invoca muy frecuentemente (cada pocos milisegundos).</li>
+          <li>Requiere algoritmos sumamente rápidos para no penalizar el rendimiento.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Políticas de Planificación a Corto Plazo</h3>
+        <ul>
+          <li>
+            <strong>Cooperativa (Sin desalojo / Non-preemptive):</strong> El proceso en ejecución conserva la CPU hasta que él mismo se bloquea voluntariamente (E/S) o finaliza.
+          </li>
+          <li>
+            <strong>Apropiativa (Con desalojo / Preemptive):</strong> El SO puede arrebatarle la CPU al proceso si aparece otro con mayor prioridad o se desbloquea uno más urgente.
+          </li>
+          <li>
+            <strong>Tiempo Compartido (Round Robin):</strong> A cada proceso se le asigna un intervalo fijo de tiempo llamado <strong>cuanto (quantum)</strong>. Si no ha terminado al agotarse el cuanto, se desaloja y se coloca al final de la cola de preparados.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout callout-warning">
+      <h4>⏱️ ¿Qué es el Cambio de Contexto (Context Switch)?</h4>
+      <p>
+        Cuando la CPU pasa de ejecutar un proceso A a un proceso B, el SO debe guardar el <strong>contexto</strong> del proceso A (contador de programa, registros de la CPU, puntero de pila y mapeo de memoria) y restaurar el contexto del proceso B.
+      </p>
+      <p>
+        <strong>¡El cambio de contexto es tiempo puramente perdido!</strong> Durante el cambio, el procesador no realiza ningún trabajo útil de cómputo para el usuario; depende del hardware y arquitectura del microprocesador.
+      </p>
+    </div>
+  </section>
+
+  <!-- 6. Procesos en Java (ProcessBuilder) -->
+  <section id="procesos-java" class="topic-section">
+    <h2>6. Creación y Gestión de Procesos en Java</h2>
+
+    <p>
+      En Java, un proceso nativo del sistema operativo está representado por la clase <code>java.lang.Process</code>. La forma recomendada y moderna de crearlo es mediante <code>java.lang.ProcessBuilder</code>.
+    </p>
+
+    <div class="code-wrapper">
+      <pre><code>// 1. Definir el comando y sus argumentos como array o lista
+String[] comando = {"notepad.exe", "notas.txt"};
+
+// 2. Crear la instancia de ProcessBuilder
+ProcessBuilder pb = new ProcessBuilder(comando);
+
+// Opcional: Establecer directorio de trabajo o variables de entorno
+// pb.directory(new File("C:\\mi_carpeta"));
+// pb.environment().put("MI_VAR", "valor");
+
+try &#123;
+    // 3. Iniciar el proceso nativo en el SO
+    Process proceso = pb.start();
+
+    // 4. Esperar a que el proceso termine (bloquea el hilo padre)
+    int codigoSalida = proceso.waitFor();
+    System.out.println("Proceso terminado con código: " + codigoSalida);
+
+&#125; catch (IOException e) &#123;
+    System.err.println("Error al lanzar el comando: " + e.getMessage());
+&#125; catch (InterruptedException e) &#123;
+    System.err.println("El proceso fue interrumpido: " + e.getMessage());
+&#125;</code></pre>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Método de <code>Process</code></th>
+            <th>Descripción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>waitFor()</code></td>
+            <td>Detiene la ejecución del padre hasta que el hijo finaliza. Devuelve el código de salida (0 suele significar éxito).</td>
+          </tr>
+          <tr>
+            <td><code>exitValue()</code></td>
+            <td>Devuelve el código de salida del hijo. <em>¡Lanza <code>IllegalThreadStateException</code> si el proceso aún no ha terminado!</em></td>
+          </tr>
+          <tr>
+            <td><code>destroy()</code></td>
+            <td>Solicita la terminación del proceso hijo de forma abrupta.</td>
+          </tr>
+          <tr>
+            <td><code>isAlive()</code></td>
+            <td>Comprueba si el proceso sigue ejecutándose.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 7. Comunicación Padre-Hijo con Streams -->
+  <section id="comunicacion-streams" class="topic-section">
+    <h2>7. Comunicación Bidireccional Padre-Hijo (Streams)</h2>
+
+    <div class="callout callout-exam">
+      <h4>🚨 ATENCIÓN EXAMEN: El sentido de los Streams en Java</h4>
+      <p>Este es el punto que más confusión genera en los exámenes:</p>
+      <ul>
+        <li>
+          <strong><code>proceso.getOutputStream()</code></strong>: Es un flujo de salida <strong>desde el punto de vista del padre</strong>, pero está conectado a la <strong>entrada estándar (stdin) del hijo</strong>. Por aquí el padre le escribe al hijo.
+        </li>
+        <li>
+          <strong><code>proceso.getInputStream()</code></strong>: Es un flujo de entrada <strong>desde el punto de vista del padre</strong>, conectado a la <strong>salida estándar (stdout) del hijo</strong>. Por aquí el padre lee lo que el hijo imprime con <code>System.out.println()</code>.
+        </li>
+        <li>
+          <strong><code>proceso.getErrorStream()</code></strong>: Conectado a la salida de errores (stderr) del hijo.
+        </li>
+      </ul>
+    </div>
+
+    <!-- Interactive Tabs: Padre vs Hijo -->
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-btn active">Código del Padre (Padre.java)</button>
+        <button class="tab-btn">Código del Hijo (CuentaLetras.java / Encriptar.java)</button>
+      </div>
+
+      <div class="tab-content active">
+        <pre><code>import java.io.*;
+
+public class Padre &#123;
+    public static void main(String[] args) &#123;
+        // Lanzamos el proceso hijo que es un JAR ejecutable
+        String[] comando = {"java", "-jar", "out/artifacts/hijo/hijo.jar"};
+        
+        try &#123;
+            Process proceso = new ProcessBuilder(comando).start();
+
+            // 1. ENVIAR DATOS AL HIJO (Escribir en su stdin)
+            PrintStream ps = new PrintStream(proceso.getOutputStream());
+            ps.println("Texto de prueba desde el padre");
+            ps.flush(); // Asegurar el envío del buffer
+            ps.close(); // ¡OBLIGATORIO! Cierra el flujo para indicar fin de datos al hijo
+
+            // 2. RECIBIR RESPUESTA DEL HIJO (Leer de su stdout)
+            BufferedReader br = new BufferedReader(new InputStreamReader(proceso.getInputStream()));
+            String respuestaHijo = br.readLine();
+            System.out.println("Respuesta recibida del hijo: " + respuestaHijo);
+
+            // 3. ESPERAR A QUE TERMINE
+            int exitCode = proceso.waitFor();
+            System.out.println("El hijo terminó con código: " + exitCode);
+
+        &#125; catch (Exception e) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;</code></pre>
+      </div>
+
+      <div class="tab-content">
+        <pre><code>import java.io.*;
+
+public class Hijo &#123;
+    public static void main(String[] args) &#123;
+        // El hijo NO sabe que lo está ejecutando un padre en Java.
+        // Simplemente lee de su System.in y escribe en su System.out.
+        
+        try &#123;
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            String linea = br.readLine(); // Espera la línea enviada por el padre
+            
+            if (linea != null) &#123;
+                // Procesamiento (por ejemplo, contar longitud o cifrar)
+                String resultado = "Procesado: " + linea.toUpperCase() + " (Longitud: " + linea.length() + ")";
+                
+                // Lo enviamos al padre por su salida estándar
+                System.out.println(resultado);
+            &#125;
+        &#125; catch (IOException e) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Trampas de Examen T1 -->
+  <section id="trampas-examen" class="topic-section">
+    <h2>8. Las 4 Trampas de Examen del Tema 1</h2>
+    <div class="grid-2">
+      <div class="card card-accent-rose">
+        <h4>1. El proceso se queda congelado (Hang/Deadlock)</h4>
+        <p>
+          Ocurre cuando el padre no hace <code>ps.close()</code> en el <code>OutputStream</code>. El hijo se queda bloqueado esperando en <code>br.readLine()</code> porque el flujo sigue abierto.
+        </p>
+      </div>
+
+      <div class="card card-accent-rose">
+        <h4>2. Ruta incorrecta del JAR</h4>
+        <p>
+          Si pones <code>"out/artifacts/encriptar/encriptar.jar"</code> y la carpeta en minúsculas/mayúsculas no coincide exactamente con tu build, el proceso fallará con un código de error de Java silencioso.
+        </p>
+      </div>
+
+      <div class="card card-accent-rose">
+        <h4>3. Confundir InputStream con OutputStream</h4>
+        <p>
+          Recordatorio mnemotécnico: El método pertenece al objeto <code>Process</code>. Por tanto, <em>getOutputStream</em> es la salida del Padre hacia el proceso, e <em>getInputStream</em> es la entrada que el Padre recibe del proceso.
+        </p>
+      </div>
+
+      <div class="card card-accent-rose">
+        <h4>4. Llamar a exitValue() antes de waitFor()</h4>
+        <p>
+          Si llamas a <code>proceso.exitValue()</code> antes de asegurarte de que el proceso ha finalizado, Java lanzará inmediatamente una <code>IllegalThreadStateException</code>. Usa siempre <code>waitFor()</code> primero.
+        </p>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .header-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .lead {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    max-width: 850px;
+    margin-top: 0.5rem;
+  }
+
+  .toc-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .toc-title {
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.5rem 1.5rem;
+  }
+
+  .toc-grid a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.88rem;
+    transition: color 0.2s;
+  }
+
+  .toc-grid a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+  }
+
+  .topic-section {
+    margin-bottom: 3.5rem;
+    scroll-margin-top: 5rem;
+  }
+
+  /* Estados Diagram */
+  .states-diagram {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    margin: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .diagram-flow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .state-box {
+    padding: 0.65rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+
+  .state-new { background: #3b82f6; color: white; }
+  .state-ready { background: #f59e0b; color: #1e1e1e; }
+  .state-running { background: #10b981; color: white; box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+  .state-blocked { background: #ef4444; color: white; }
+  .state-term { background: #6b7280; color: white; }
+
+  .state-arrow {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .diagram-bottom-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .sub-arrow {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+</style>
+

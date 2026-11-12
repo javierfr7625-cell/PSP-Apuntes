@@ -1,0 +1,195 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Chuleta Rápida de Examen (Cheatsheet)" activePage="chuleta">
+  <div class="header-section">
+    <span class="badge badge-amber">Memorizar Antes de Entrar</span>
+    <h1>Chuleta Rápida de Examen: PSP Java</h1>
+    <p class="lead">
+      Esquemas sintéticos, plantillas mínimas de código para copiar/pegar mentalmente en el examen y las respuestas directas a las preguntas teóricas fijas.
+    </p>
+  </div>
+
+  <!-- Checklist Pre-Entrega -->
+  <section class="section-container">
+    <div class="callout callout-exam">
+      <h4>📋 Checklist de los 10 Puntos Antes de Entregar el Examen</h4>
+      <div class="checklist-grid">
+        <label class="check-item"><input type="checkbox" checked disabled> 1. ¿Cerraste el <code>ps.close()</code> en el <code>OutputStream</code> del subproceso padre?</label>
+        <label class="check-item"><input type="checkbox" checked disabled> 2. ¿Declaraste el <code>Semaphore</code> como <code>public static</code> en la clase del hilo?</label>
+        <label class="check-item"><input type="checkbox" checked disabled> 3. ¿Pusiste el <code>semaphore.release()</code> dentro de un bloque <code>finally</code>?</label>
+        <label class="check-item"><input type="checkbox" checked disabled> 4. ¿Esperaste a todos los hilos con <code>hilo.join()</code> en el <code>main</code> antes de imprimir el total?</label>
+        <label class="check-item"><input type="checkbox" checked disabled> 5. ¿Iniciaste los hilos con <code>start()</code> y NUNCA con <code>run()</code>?</label>
+        <label class="check-item"><input type="checkbox" checked disabled> 6. ¿Comprobaste las rutas relativas de los JARs (<code>out/artifacts/.../....jar</code>)?</label>
+        <label class="check-item"><input type="checkbox" checked disabled> 7. ¿Reconstruiste los artefactos (<code>Build Artifacts -&gt; Rebuild</code>) tras modificar el código del hijo?</label>
+        <label class="check-item"><input type="checkbox" checked disabled> 8. ¿Comparaste cadenas de texto con <code>.equals()</code> y NO con <code>==</code>?</label>
+        <label class="check-item"><input type="checkbox" checked disabled> 9. ¿Llamaste a <code>proceso.waitFor()</code> antes de comprobar <code>proceso.exitValue()</code>?</label>
+        <label class="check-item"><input type="checkbox" checked disabled> 10. Si hay variables globales independientes, ¿creaste un <code>Semaphore</code> distinto para cada una?</label>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 Plantillas Clave -->
+  <section class="section-container">
+    <h2>Las 3 Plantillas de Código que Debes Memorizar</h2>
+
+    <!-- Plantilla 1 -->
+    <div class="card card-accent-sky" style="margin-bottom: 2rem;">
+      <h3>Plantilla 1: Proceso Padre lanzando un JAR Hijo y Comunicándose</h3>
+      <div class="code-wrapper">
+        <pre><code>// 1. Comando del JAR
+String[] cmd = {"java", "-jar", "out/artifacts/MiJar/MiJar.jar"};
+Process proceso = new ProcessBuilder(cmd).start();
+
+// 2. ENVIAR datos al hijo (su stdin)
+PrintStream ps = new PrintStream(proceso.getOutputStream());
+ps.println("Mensaje para el hijo");
+ps.flush();
+ps.close(); // ¡Cerrar siempre!
+
+// 3. RECIBIR datos del hijo (su stdout)
+BufferedReader br = new BufferedReader(new InputStreamReader(proceso.getInputStream()));
+String respuestaHijo = br.readLine();
+
+// 4. Esperar finalización
+int exitCode = proceso.waitFor();</code></pre>
+      </div>
+    </div>
+
+    <!-- Plantilla 2 -->
+    <div class="card card-accent-emerald" style="margin-bottom: 2rem;">
+      <h3>Plantilla 2: Proceso Hijo (el que se empaqueta en el JAR)</h3>
+      <div class="code-wrapper">
+        <pre><code>import java.io.BufferedReader;
+import java.io.InputStreamReader;
+
+public class ProcesoHijo &#123;
+    public static void main(String[] args) &#123;
+        try &#123;
+            // Lee de su propia System.in (lo que le manda el padre)
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            String entrada = br.readLine();
+
+            if (entrada != null) &#123;
+                // Procesa y envía resultado al padre por System.out
+                String salida = entrada.toUpperCase(); // O cifrado/conteo
+                System.out.println(salida);
+            &#125;
+        &#125; catch (Exception e) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;</code></pre>
+      </div>
+    </div>
+
+    <!-- Plantilla 3 -->
+    <div class="card card-accent-purple" style="margin-bottom: 2rem;">
+      <h3>Plantilla 3: Hilos Concurrentes con Semáforo Compartido</h3>
+      <div class="code-wrapper">
+        <pre><code>import java.util.concurrent.Semaphore;
+
+public class HiloSeguro extends Thread &#123;
+    // Semáforo STATIC (compartido por todas las instancias)
+    public static Semaphore sem = new Semaphore(1);
+    public static int contadorGlobal = 0;
+
+    public HiloSeguro(String nombre) &#123;
+        super(nombre);
+        start(); // Autoarranque
+    &#125;
+
+    @Override
+    public void run() &#123;
+        try &#123;
+            sem.acquire(); // -1 permiso (bloquea a los demás)
+            // SECCIÓN CRÍTICA
+            contadorGlobal++;
+        &#125; catch (InterruptedException e) &#123;
+            Thread.currentThread().interrupt();
+        &#125; finally &#123;
+            sem.release(); // +1 permiso (SIEMPRE en el finally)
+        &#125;
+    &#125;
+&#125;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Preguntas Teóricas Flash -->
+  <section class="section-container">
+    <h2>Respuestas Rápidas para Preguntas Teóricas</h2>
+
+    <div class="grid-2">
+      <div class="card">
+        <h4>¿Qué es un Demonio (Daemon)?</h4>
+        <p>Un proceso no interactivo que se ejecuta continuamente en segundo plano para proporcionar servicios esenciales al SO o a otras aplicaciones.</p>
+      </div>
+
+      <div class="card">
+        <h4>¿Diferencia entre Concurrencia y Paralelismo?</h4>
+        <p><strong>Concurrencia:</strong> Varias tareas progresan intercalándose en la CPU (ilusión de simultaneidad). <strong>Paralelismo:</strong> Varias instrucciones se ejecutan exactamente en el mismo instante de tiempo en múltiples núcleos físicos.</p>
+      </div>
+
+      <div class="card">
+        <h4>¿Por qué el Cambio de Contexto es tiempo perdido?</h4>
+        <p>Porque el procesador invierte ciclos de reloj exclusivamente en guardar y restaurar registros, punteros y estados de memoria del SO, sin ejecutar código útil del usuario.</p>
+      </div>
+
+      <div class="card">
+        <h4>¿Cuáles son las 3 reglas de Dijkstra para la Sección Crítica?</h4>
+        <p>1. <strong>Exclusión Mutua:</strong> Solo un proceso dentro a la vez. 2. <strong>Progreso:</strong> Solo los que esperan deciden quién entra. 3. <strong>Espera Limitada:</strong> No puede haber inanición (espera indefinida).</p>
+      </div>
+
+      <div class="card">
+        <h4>¿Qué es una Condición de Carrera?</h4>
+        <p>Una anomalía en la que el resultado final de una variable compartida depende del orden impredecible en que el planificador del SO intercala la ejecución de los hilos.</p>
+      </div>
+
+      <div class="card">
+        <h4>¿Qué es el Modo Dual?</h4>
+        <p>Protección hardware con 2 modos: Modo Kernel (0, privilegiado, control total del hardware) y Modo Usuario (1, restringido para apps comunes, usa llamadas al sistema).</p>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .header-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .lead {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    max-width: 850px;
+    margin-top: 0.5rem;
+  }
+
+  .section-container {
+    margin-bottom: 3.5rem;
+  }
+
+  .checklist-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.92rem;
+    color: #ffffff;
+  }
+
+  .check-item input[type="checkbox"] {
+    accent-color: #10b981;
+    width: 17px;
+    height: 17px;
+  }
+</style>
+

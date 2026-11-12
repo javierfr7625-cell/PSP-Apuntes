@@ -1,0 +1,539 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Ejercicios Resueltos - Tema 2: Hilos" activePage="ej2">
+  <div class="header-section">
+    <span class="badge badge-purple">Tema 2 · Práctica Oficial</span>
+    <h1>Ejercicios Resueltos de Hilos (Tema 2)</h1>
+    <p class="lead">
+      Soluciones completas, comentadas y ejecutables para los 5 ejercicios de hilos, concurrencia, prioridades y semáforos de PSP.
+    </p>
+  </div>
+
+  <!-- Quick Nav -->
+  <div class="toc-card">
+    <div class="toc-title">Ejercicios de la relación:</div>
+    <div class="toc-grid">
+      <a href="#ejercicio-1">Ejercicio 1: Carrera con Prioridades de CPU</a>
+      <a href="#ejercicio-2">Ejercicio 2: Contador de Vocales con Semáforo</a>
+      <a href="#ejercicio-3">Ejercicio 3: Carrera de Relevos con Testigo</a>
+      <a href="#ejercicio-4">Ejercicio 4: Banco con Cámaras y Semáforos Separados</a>
+      <a href="#ejercicio-5">Ejercicio 5: Conteo de Palabras por Rangos e Impares</a>
+    </div>
+  </div>
+
+  <!-- Ejercicio 1 -->
+  <section id="ejercicio-1" class="exercise-block">
+    <div class="exercise-header">
+      <span class="badge badge-purple">Ejercicio 1</span>
+      <h2>Carrera de Animales con Prioridades (`setPriority`)</h2>
+    </div>
+
+    <div class="card card-accent-purple">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Realiza un programa en el que crees una clase llamada <code>Animal</code> y tres objetos: <strong>Tortuga, liebre, guepardo</strong>. Asigna un hilo a cada uno y utiliza la asignación de prioridades para establecer quién llegará el primero (Liebre prioridad 5, Guepardo prioridad 1, Tortuga prioridad 10). La carrera será mediante un contador de 10.000 iteraciones. Cada hilo avisará de la posición en la que llega al terminar.
+      </p>
+    </div>
+
+    <div class="code-wrapper">
+      <pre><code>import java.util.concurrent.Semaphore;
+
+public class CarreraAnimales &#123;
+    // Semáforo para proteger la posición del podio (1º, 2º, 3º)
+    public static Semaphore semPodio = new Semaphore(1);
+    public static int posicionLlegada = 1;
+
+    public static class Animal extends Thread &#123;
+        private final int META = 10000;
+
+        public Animal(String nombre, int prioridad) &#123;
+            super(nombre);
+            this.setPriority(prioridad); // Asignación de prioridad (1 a 10)
+        &#125;
+
+        @Override
+        public void run() &#123;
+            // Bucle que simula el avance en la carrera
+            for (int i = 0; i &lt; META; i++) &#123;
+                // Cómputo intensivo
+                Math.sin(i);
+            &#125;
+
+            // Al cruzar la meta, asignamos la posición con exclusión mutua
+            try &#123;
+                semPodio.acquire();
+                System.out.println("¡" + getName() + " ha terminado en la posición " + posicionLlegada + "!");
+                posicionLlegada++;
+            &#125; catch (InterruptedException e) &#123;
+                Thread.currentThread().interrupt();
+            &#125; finally &#123;
+                semPodio.release();
+            &#125;
+        &#125;
+    &#125;
+
+    public static void main(String[] args) throws InterruptedException &#123;
+        // Guepardo prioridad 1 (MIN), Liebre prioridad 5 (NORM), Tortuga prioridad 10 (MAX)
+        Animal guepardo = new Animal("Guepardo", 1);
+        Animal liebre = new Animal("Liebre", 5);
+        Animal tortuga = new Animal("Tortuga", 10);
+
+        System.out.println("--- COMIENZA LA CARRERA ---");
+        guepardo.start();
+        liebre.start();
+        tortuga.start();
+
+        // Esperar a que todos terminen
+        guepardo.join();
+        liebre.join();
+        tortuga.join();
+
+        System.out.println("--- CARRERA FINALIZADA ---");
+    &#125;
+&#125;</code></pre>
+    </div>
+  </section>
+
+  <!-- Ejercicio 2 -->
+  <section id="ejercicio-2" class="exercise-block">
+    <div class="exercise-header">
+      <span class="badge badge-purple">Ejercicio 2</span>
+      <h2>Contador de Vocales Multihilo con Semáforo</h2>
+    </div>
+
+    <div class="card card-accent-purple">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Crea una clase Java que utilice <strong>5 hilos</strong> para contar el número de vocales que hay en un texto. Cada hilo se encargará de contar una vocal diferente (A, E, I, O, U), actualizando todos los hilos la misma variable común que representa el número de vocales totales. Para evitar condiciones de carrera se deben utilizar semáforos.
+      </p>
+    </div>
+
+    <div class="code-wrapper">
+      <pre><code>import java.util.ArrayList;
+import java.util.concurrent.Semaphore;
+
+public class ContadorVocales &#123;
+    // Variable común compartida por los 5 hilos
+    public static int totalVocales = 0;
+
+    // Semáforo estático binario (1 permiso) para evitar condiciones de carrera
+    public static Semaphore semVocales = new Semaphore(1);
+
+    public static class HiloVocal extends Thread &#123;
+        private char vocal;
+        private String texto;
+        private int contadorPropio = 0;
+
+        public HiloVocal(char vocal, String texto) &#123;
+            super("Hilo-" + vocal);
+            this.vocal = Character.toLowerCase(vocal);
+            this.texto = texto.toLowerCase();
+            start();
+        &#125;
+
+        @Override
+        public void run() &#123;
+            for (char c : texto.toCharArray()) &#123;
+                if (c == vocal) &#123;
+                    contadorPropio++;
+                    try &#123;
+                        // Sección Crítica: modificar la variable global
+                        semVocales.acquire();
+                        totalVocales++;
+                    &#125; catch (InterruptedException e) &#123;
+                        Thread.currentThread().interrupt();
+                    &#125; finally &#123;
+                        semVocales.release();
+                    &#125;
+                &#125;
+            &#125;
+            System.out.println("El hilo de la vocal '" + vocal + "' contó: " + contadorPropio);
+        &#125;
+    &#125;
+
+    public static void main(String[] args) throws InterruptedException &#123;
+        String texto = "Programacion de servicios y procesos en java con hilos y semaforos concurrentes";
+        char[] vocales = {'a', 'e', 'i', 'o', 'u'};
+        ArrayList&lt;HiloVocal&gt; hilos = new ArrayList&lt;&gt;();
+
+        for (char v : vocales) &#123;
+            hilos.add(new HiloVocal(v, texto));
+        &#125;
+
+        for (HiloVocal h : hilos) &#123;
+            h.join();
+        &#125;
+
+        System.out.println("\nNúmero total de vocales en el texto: " + totalVocales);
+    &#125;
+&#125;</code></pre>
+    </div>
+  </section>
+
+  <!-- Ejercicio 3 -->
+  <section id="ejercicio-3" class="exercise-block">
+    <div class="exercise-header">
+      <span class="badge badge-purple">Ejercicio 3</span>
+      <h2>Carrera de Relevos con Testigo</h2>
+    </div>
+
+    <div class="card card-accent-purple">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Simular una carrera de relevos con 4 hilos. Un hilo empieza a correr, corre un par de segundos (<code>sleep(2000)</code>), pasa el testigo a otro hilo y finaliza. El orden de los hilos es aleatorio. Cuando el último termine, el padre mostrará que todos los hijos han terminado.
+      </p>
+    </div>
+
+    <div class="code-wrapper">
+      <pre><code>import java.util.ArrayList;
+import java.util.Collections;
+import java.util.concurrent.Semaphore;
+
+public class CarreraRelevos &#123;
+    public static class Corredor extends Thread &#123;
+        private Semaphore miTurno;
+        private Semaphore siguienteTurno;
+        private boolean esUltimo;
+
+        public Corredor(int id, Semaphore miTurno, Semaphore siguienteTurno, boolean esUltimo) &#123;
+            super("Hilo " + id);
+            this.miTurno = miTurno;
+            this.siguienteTurno = siguienteTurno;
+            this.esUltimo = esUltimo;
+            start();
+        &#125;
+
+        @Override
+        public void run() &#123;
+            try &#123;
+                // Espera a recibir el testigo (1 permiso en su semáforo)
+                miTurno.acquire();
+                System.out.println("soy el " + getName() + ", corriendo ...");
+                Thread.sleep(2000); // Corre un par de segundos
+
+                if (!esUltimo) &#123;
+                    System.out.println("Terminé. Paso el testigo");
+                    siguienteTurno.release(); // Entrega el testigo al siguiente
+                &#125; else &#123;
+                    System.out.println("Terminé la carrera, soy el último");
+                &#125;
+            &#125; catch (InterruptedException e) &#123;
+                Thread.currentThread().interrupt();
+            &#125;
+        &#125;
+    &#125;
+
+    public static void main(String[] args) throws InterruptedException &#123;
+        System.out.println("Todos los hilos creados");
+
+        // Creamos orden aleatorio para los 4 corredores (1, 2, 3, 4)
+        ArrayList&lt;Integer&gt; orden = new ArrayList&lt;&gt;();
+        for (int i = 1; i &lt;= 4; i++) orden.add(i);
+        Collections.shuffle(orden);
+
+        // 4 semáforos inicializados a 0 (bloqueados)
+        Semaphore[] semaforos = new Semaphore[4];
+        for (int i = 0; i &lt; 4; i++) semaforos[i] = new Semaphore(0);
+
+        ArrayList&lt;Corredor&gt; corredores = new ArrayList&lt;&gt;();
+        for (int i = 0; i &lt; 4; i++) &#123;
+            boolean esUltimo = (i == 3);
+            Semaphore sig = esUltimo ? null : semaforos[i + 1];
+            corredores.add(new Corredor(orden.get(i), semaforos[i], sig, esUltimo));
+        &#125;
+
+        Thread.sleep(500);
+        System.out.println("Doy la salida !!!");
+        // Iniciamos al primer corredor dándole el testigo inicial
+        semaforos[0].release();
+
+        // El hilo principal espera a que todos terminen
+        for (Corredor c : corredores) &#123;
+            c.join();
+        &#125;
+
+        System.out.println("Todos los hilos terminaron !!!");
+    &#125;
+&#125;</code></pre>
+    </div>
+  </section>
+
+  <!-- Ejercicio 4 -->
+  <section id="ejercicio-4" class="exercise-block">
+    <div class="exercise-header">
+      <span class="badge badge-purple">Ejercicio 4</span>
+      <h2>Sistema Bancario con Dos Cámaras y Semáforos Separados</h2>
+    </div>
+
+    <div class="card card-accent-purple">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        4 clientes: Andrea 5000 SINGLE, Leonardo 4000 PLUS, Sansón 6000 SINGLE, Sara 7000 PLUS. El banco tiene <code>dinero = 100000</code> y <code>dineroPLUS = 50000</code>.
+      </p>
+      <ul>
+        <li><strong>Zona crítica 1 (Cámara acorazada estándar):</strong> Entran todos. Suman su cantidad al dinero del banco y restan 1000 de comisión.</li>
+        <li><strong>Zona crítica 2 (Cámara acorazada PLUS):</strong> Solo entran clientes PLUS. Restan el 10% de su cantidad del saldo PLUS y se lo ingresan en su cuenta.</li>
+        <li>Usar semáforos independientes para cada cámara acorazada.</li>
+      </ul>
+    </div>
+
+    <div class="code-wrapper">
+      <pre><code>import java.util.ArrayList;
+import java.util.concurrent.Semaphore;
+
+public class BancoConcurrente &#123;
+    // Variables globales del banco
+    public static double dinero = 100000.0;
+    public static double dineroPLUS = 50000.0;
+
+    // SEMÁFOROS INDEPENDIENTES: Permiten que un cliente esté en la cámara estándar
+    // mientras otro cliente PLUS opera simultáneamente en la cámara PLUS
+    public static Semaphore semCamaraNormal = new Semaphore(1);
+    public static Semaphore semCamaraPlus = new Semaphore(1);
+
+    public static class Cliente extends Thread &#123;
+        private double cantidad;
+        private String categoria; // "SINGLE" o "PLUS"
+        private double saldoPersonal = 0.0;
+
+        public Cliente(String nombre, double cantidad, String categoria) &#123;
+            super(nombre);
+            this.cantidad = cantidad;
+            this.categoria = categoria;
+            start();
+        &#125;
+
+        @Override
+        public void run() &#123;
+            System.out.println(getName() + " entra en el banco.");
+
+            // 1. PRIMERA ZONA CRÍTICA: Cámara Acorazada Normal
+            System.out.println(getName() + " solicita entrar a la cámara acorazada normal.");
+            try &#123;
+                semCamaraNormal.acquire();
+                System.out.println("-> " + getName() + " ENTRA en la cámara acorazada normal.");
+                dinero += cantidad;
+                dinero -= 1000; // Comisión
+                System.out.println("&lt;- " + getName() + " SALE de la cámara normal (saldo banco: " + dinero + ")");
+            &#125; catch (InterruptedException e) &#123;
+                Thread.currentThread().interrupt();
+            &#125; finally &#123;
+                semCamaraNormal.release();
+            &#125;
+
+            // 2. SEGUNDA ZONA CRÍTICA: Solo clientes PLUS
+            if (categoria.equalsIgnoreCase("PLUS")) &#123;
+                System.out.println(getName() + " solicita entrar a la cámara acorazada PLUS.");
+                try &#123;
+                    semCamaraPlus.acquire();
+                    System.out.println("==> " + getName() + " ENTRA en la cámara PLUS.");
+                    double diezPorCiento = cantidad * 0.10;
+                    dineroPLUS -= diezPorCiento;
+                    saldoPersonal += diezPorCiento;
+                    System.out.println("&lt;== " + getName() + " SALE de la cámara PLUS (recompensa obtenida: " + diezPorCiento + ")");
+                &#125; catch (InterruptedException e) &#123;
+                    Thread.currentThread().interrupt();
+                &#125; finally &#123;
+                    semCamaraPlus.release();
+                &#125;
+            &#125;
+
+            System.out.println(getName() + " sale del banco.");
+        &#125;
+    &#125;
+
+    public static void main(String[] args) throws InterruptedException &#123;
+        ArrayList&lt;Cliente&gt; clientes = new ArrayList&lt;&gt;();
+        clientes.add(new Cliente("Andrea", 5000, "SINGLE"));
+        clientes.add(new Cliente("Leonardo", 4000, "PLUS"));
+        clientes.add(new Cliente("Sansón", 6000, "SINGLE"));
+        clientes.add(new Cliente("Sara", 7000, "PLUS"));
+
+        for (Cliente c : clientes) &#123;
+            c.join();
+        &#125;
+
+        System.out.println("\n========== CIERRE DEL BANCO ==========");
+        System.out.println("Dinero final en Cámara Normal: " + dinero);
+        System.out.println("Dinero final en Cámara PLUS:   " + dineroPLUS);
+    &#125;
+&#125;</code></pre>
+    </div>
+  </section>
+
+  <!-- Ejercicio 5 -->
+  <section id="ejercicio-5" class="exercise-block">
+    <div class="exercise-header">
+      <span class="badge badge-purple">Ejercicio 5</span>
+      <h2>Conteo de Palabras por Rangos e Impares (Lorem Ipsum)</h2>
+    </div>
+
+    <div class="card card-accent-purple">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Dado un texto de 500 caracteres, dividir el análisis entre 3 hilos:
+      </p>
+      <ul>
+        <li><strong>Hilo 1:</strong> caracteres 0 al 200.</li>
+        <li><strong>Hilo 2:</strong> caracteres 201 al 400.</li>
+        <li><strong>Hilo 3:</strong> caracteres 401 al 500.</li>
+        <li>Variables globales <code>totalWords</code> y <code>totalOdd</code> (palabras cuya longitud sea impar) protegidas con <strong>semáforos independientes</strong>.</li>
+      </ul>
+    </div>
+
+    <div class="code-wrapper">
+      <pre><code>import java.util.ArrayList;
+import java.util.concurrent.Semaphore;
+
+public class AnalizadorTexto &#123;
+    public static int totalWords = 0;
+    public static int totalOdd = 0;
+
+    // Semáforos independientes: un hilo puede estar sumando a totalWords
+    // mientras otro hilo simultáneamente suma a totalOdd
+    public static Semaphore semTotalWords = new Semaphore(1);
+    public static Semaphore semTotalOdd = new Semaphore(1);
+
+    public static class HiloSegmento extends Thread &#123;
+        private String fragmento;
+        private int palabrasLocales = 0;
+        private int imparesLocales = 0;
+
+        public HiloSegmento(String nombre, String texto, int inicio, int fin) &#123;
+            super(nombre);
+            int finSeguro = Math.min(fin, texto.length());
+            this.fragmento = texto.substring(inicio, finSeguro);
+            start();
+        &#125;
+
+        @Override
+        public void run() &#123;
+            String[] tokens = fragmento.trim().split("\\s+");
+
+            for (String t : tokens) &#123;
+                String palabra = t.replaceAll("[^a-zA-Z]", "");
+                if (palabra.isEmpty()) continue;
+
+                palabrasLocales++;
+
+                // Sección Crítica 1: totalWords
+                try &#123;
+                    semTotalWords.acquire();
+                    totalWords++;
+                &#125; catch (InterruptedException e) &#123;
+                    Thread.currentThread().interrupt();
+                &#125; finally &#123;
+                    semTotalWords.release();
+                &#125;
+
+                // Sección Crítica 2: totalOdd (longitud impar)
+                if (palabra.length() % 2 != 0) &#123;
+                    imparesLocales++;
+                    try &#123;
+                        semTotalOdd.acquire();
+                        totalOdd++;
+                    &#125; catch (InterruptedException e) &#123;
+                        Thread.currentThread().interrupt();
+                    &#125; finally &#123;
+                        semTotalOdd.release();
+                    &#125;
+                &#125;
+            &#125;
+
+            System.out.println(getName() + " terminó: " + palabrasLocales + " palabras contadas, " + imparesLocales + " impares.");
+        &#125;
+    &#125;
+
+    public static void main(String[] args) throws InterruptedException &#123;
+        String texto = "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Consequuntur explicabo "
+                + "laboriosam, minusm ollitia nostrum quibusdam quo reprehenderit. Adipisci "
+                + "consectetur, ducimus, facere laudantium nemoo mnis optio quaerat, quo soluta "
+                + "voluptate voluptatibus. Lorem ipsum dolor sit amet, consectetur adip sicing elit. "
+                + "Aliquam, aperiam beatae blanditiis consectetur dolore dolorem excepturi harum "
+                + "maximeob caecati perferendis porro quisquam quos repellendus sequi soluta ullam "
+                + "veritatis! Inventore davince.";
+
+        ArrayList&lt;HiloSegmento&gt; hilos = new ArrayList&lt;&gt;();
+        hilos.add(new HiloSegmento("Hilo-1", texto, 0, 200));
+        hilos.add(new HiloSegmento("Hilo-2", texto, 200, 400));
+        hilos.add(new HiloSegmento("Hilo-3", texto, 400, texto.length()));
+
+        for (HiloSegmento h : hilos) &#123;
+            h.join();
+        &#125;
+
+        System.out.println("\n--- RESULTADOS GLOBALES ---");
+        System.out.println("Palabras Totales (totalWords): " + totalWords);
+        System.out.println("Palabras Impares (totalOdd):   " + totalOdd);
+    &#125;
+&#125;</code></pre>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .header-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .lead {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    max-width: 850px;
+    margin-top: 0.5rem;
+  }
+
+  .toc-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .toc-title {
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.5rem 1.5rem;
+  }
+
+  .toc-grid a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.88rem;
+    transition: color 0.2s;
+  }
+
+  .toc-grid a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+  }
+
+  .exercise-block {
+    margin-bottom: 4rem;
+    scroll-margin-top: 5rem;
+  }
+
+  .exercise-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .exercise-header h2 {
+    margin: 0;
+    border: none;
+    padding: 0;
+  }
+</style>
+

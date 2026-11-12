@@ -1,0 +1,503 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Ejercicios Resueltos - Tema 1: Procesos" activePage="ej1">
+  <div class="header-section">
+    <span class="badge badge-sky">Tema 1 · Práctica Oficial</span>
+    <h1>Ejercicios Resueltos de Procesos (Tema 1)</h1>
+    <p class="lead">
+      Soluciones completas, comentadas y explicadas paso a paso para los 5 ejercicios de la relación de problemas oficial del Tema 1 de PSP.
+    </p>
+  </div>
+
+  <!-- Quick Nav -->
+  <div class="toc-card">
+    <div class="toc-title">Ejercicios de la relación:</div>
+    <div class="toc-grid">
+      <a href="#ejercicio-1">Ejercicio 1: Menú Lanzador de Apps con Argumentos</a>
+      <a href="#ejercicio-2">Ejercicio 2: Mayúsculas Bidireccional por Streams</a>
+      <a href="#ejercicio-3">Ejercicio 3: Tubería dir/ls con Filtro de Última Línea</a>
+      <a href="#ejercicio-4">Ejercicio 4: Inversor de Archivo con 2 Subprocesos</a>
+      <a href="#ejercicio-5">Ejercicio 5: Validador de Contraseñas Modular</a>
+    </div>
+  </div>
+
+  <!-- Ejercicio 1 -->
+  <section id="ejercicio-1" class="exercise-block">
+    <div class="exercise-header">
+      <span class="badge badge-sky">Ejercicio 1</span>
+      <h2>Menú Lanzador de Aplicaciones con y sin Argumentos</h2>
+    </div>
+
+    <div class="card card-accent-sky">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Escribe una clase llamada <code>Ejecuta</code> que abra un menú con 4 opciones de aplicaciones para abrir, una de ellas tiene que aceptar argumentos. Si selecciona la de argumentos le pedirá dichos argumentos (por ejemplo, si abre el navegador le pedirá cuántas y qué páginas web quiere abrir), tras lo cual abrirá en un proceso hijo la aplicación seleccionada. El resto de aplicaciones del menú se abrirán directamente en un proceso hijo al seleccionarlas. El usuario dispondrá de una opción para salir.
+      </p>
+    </div>
+
+    <div class="code-wrapper">
+      <pre><code>import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+
+public class Ejecuta &#123;
+    public static void main(String[] args) &#123;
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String opcion = "";
+
+        do &#123;
+            System.out.println("\n===== MENÚ DE APLICACIONES =====");
+            System.out.println("1. Abrir Bloc de Notas (Notepad)");
+            System.out.println("2. Abrir Calculadora (Calc)");
+            System.out.println("3. Abrir Navegador Web con URLs (Con argumentos)");
+            System.out.println("4. Abrir Paint (mspaint)");
+            System.out.println("5. Salir");
+            System.out.print("Elige una opción: ");
+
+            try &#123;
+                opcion = br.readLine();
+                switch (opcion) &#123;
+                    case "1" -> abrirProceso(new String[]{"notepad.exe"});
+                    case "2" -> abrirProceso(new String[]{"calc.exe"});
+                    case "3" -> abrirNavegadorConArgumentos(br);
+                    case "4" -> abrirProceso(new String[]{"mspaint.exe"});
+                    case "5" -> System.out.println("Saliendo del programa...");
+                    default -> System.out.println("Opción no válida.");
+                &#125;
+            &#125; catch (IOException e) &#123;
+                System.out.println("Error de lectura: " + e.getMessage());
+            &#125;
+        &#125; while (!opcion.equals("5"));
+    &#125;
+
+    private static void abrirProceso(String[] comando) &#123;
+        try &#123;
+            ProcessBuilder pb = new ProcessBuilder(comando);
+            pb.start();
+            System.out.println("Aplicación iniciada con éxito en un subproceso hijo.");
+        &#125; catch (IOException e) &#123;
+            System.out.println("No se pudo iniciar la aplicación: " + e.getMessage());
+        &#125;
+    &#125;
+
+    private static void abrirNavegadorConArgumentos(BufferedReader br) throws IOException &#123;
+        System.out.print("¿Cuántas páginas web quieres abrir?: ");
+        int cantidad = Integer.parseInt(br.readLine());
+
+        // Array dinámico de comandos: comando base + URLs
+        ArrayList&lt;String&gt; comando = new ArrayList&lt;&gt;();
+        // En Windows, podemos invocar chrome directamente si está en PATH o mediante cmd /c start chrome
+        comando.add("cmd");
+        comando.add("/c");
+        comando.add("start");
+        comando.add("chrome");
+
+        for (int i = 1; i &lt;= cantidad; i++) &#123;
+            System.out.print("Introduce la URL #" + i + " (ej: https://google.com): ");
+            String url = br.readLine();
+            comando.add(url);
+        &#125;
+
+        try &#123;
+            ProcessBuilder pb = new ProcessBuilder(comando);
+            pb.start();
+            System.out.println("Navegador lanzado abriendo las " + cantidad + " páginas solicitadas.");
+        &#125; catch (IOException e) &#123;
+            System.out.println("Error al lanzar el navegador: " + e.getMessage());
+        &#125;
+    &#125;
+&#125;</code></pre>
+    </div>
+  </section>
+
+  <!-- Ejercicio 2 -->
+  <section id="ejercicio-2" class="exercise-block">
+    <div class="exercise-header">
+      <span class="badge badge-sky">Ejercicio 2</span>
+      <h2>Conversión a Mayúsculas Bidireccional por Streams</h2>
+    </div>
+
+    <div class="card card-accent-sky">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Completa una clase llamada <code>Mayusculas</code> que haga lo siguiente:
+      </p>
+      <ul>
+        <li>Cree un proceso hijo (<code>CambioMayusculas</code>).</li>
+        <li>El proceso padre y el proceso hijo se comunicarán de forma bidireccional utilizando streams.</li>
+        <li>El padre leerá líneas de su entrada estándar y las enviará a la entrada estándar del hijo (con <code>OutputStream</code>).</li>
+        <li>El hijo leerá el texto, lo transformará a mayúsculas con <code>toUpperCase()</code> y lo imprimirá por su salida estándar.</li>
+        <li>El padre imprimirá en pantalla lo que recibe del hijo a través del <code>InputStream</code>.</li>
+      </ul>
+    </div>
+
+    <!-- Interactive Tabs -->
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-btn active">Padre: Mayusculas.java</button>
+        <button class="tab-btn">Hijo: CambioMayusculas.java</button>
+      </div>
+
+      <div class="tab-content active">
+        <pre><code>import java.io.*;
+
+public class Mayusculas &#123;
+    public static void main(String[] args) &#123;
+        BufferedReader teclado = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println("Escribe texto (escribe 'fin' para terminar):");
+
+        try &#123;
+            String linea;
+            while ((linea = teclado.readLine()) != null) &#123;
+                if (linea.equalsIgnoreCase("fin")) &#123;
+                    break;
+                &#125;
+
+                // Lanzar subproceso hijo CambioMayusculas.jar
+                String[] comando = {"java", "-jar", "out/artifacts/CambioMayusculas/CambioMayusculas.jar"};
+                Process hijo = new ProcessBuilder(comando).start();
+
+                // 1. Escribir texto al hijo por su OutputStream
+                PrintStream ps = new PrintStream(hijo.getOutputStream());
+                ps.println(linea);
+                ps.flush();
+                ps.close(); // Crucial para que el hijo sepa que terminaron los datos de entrada
+
+                // 2. Leer resultado devuelto por el hijo en su InputStream
+                BufferedReader brHijo = new BufferedReader(new InputStreamReader(hijo.getInputStream()));
+                String respuesta = brHijo.readLine();
+
+                // 3. Imprimir el resultado en pantalla
+                System.out.println(respuesta);
+
+                hijo.waitFor();
+            &#125;
+        &#125; catch (Exception e) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;</code></pre>
+      </div>
+
+      <div class="tab-content">
+        <pre><code>import java.io.BufferedReader;
+import java.io.InputStreamReader;
+
+public class CambioMayusculas &#123;
+    public static void main(String[] args) &#123;
+        try &#123;
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            String texto = br.readLine();
+            
+            if (texto != null) &#123;
+                // Transforma a mayúsculas e imprime en stdout
+                System.out.println(texto.toUpperCase());
+            &#125;
+        &#125; catch (Exception e) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ejercicio 3 -->
+  <section id="ejercicio-3" class="exercise-block">
+    <div class="exercise-header">
+      <span class="badge badge-sky">Ejercicio 3</span>
+      <h2>Tubería dir/ls con Filtro de Última Línea</h2>
+    </div>
+
+    <div class="card card-accent-sky">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Desarrollar una solución multiproceso que ejecute el comando <code>dir</code> (Windows) o <code>ls -la</code> (Linux) y redireccione la salida estándar a otro proceso hijo que crearemos, el cual mostrará <strong>ÚNICAMENTE la última línea</strong> que devuelva el comando por pantalla.
+      </p>
+    </div>
+
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-btn active">Padre: EnrutadorComando.java</button>
+        <button class="tab-btn">Hijo Filtro: UltimaLinea.java</button>
+      </div>
+
+      <div class="tab-content active">
+        <pre><code>import java.io.*;
+
+public class EnrutadorComando &#123;
+    public static void main(String[] args) &#123;
+        try &#123;
+            // 1. Proceso 1: Ejecutar dir en Windows (o ls -la en Unix)
+            boolean esWindows = System.getProperty("os.name").toLowerCase().contains("win");
+            String[] comandoSO = esWindows ? new String[]{"cmd.exe", "/c", "dir"} : new String[]{"ls", "-la"};
+
+            Process procesoComando = new ProcessBuilder(comandoSO).start();
+
+            // 2. Proceso 2: Nuestro subproceso que filtra la última línea
+            String[] comandoFiltro = {"java", "-jar", "out/artifacts/UltimaLinea/UltimaLinea.jar"};
+            Process procesoFiltro = new ProcessBuilder(comandoFiltro).start();
+
+            // 3. Tubería (Pipe): Pasar la salida del proceso 1 a la entrada del proceso 2
+            BufferedReader lectorP1 = new BufferedReader(new InputStreamReader(procesoComando.getInputStream()));
+            PrintStream escritorP2 = new PrintStream(procesoFiltro.getOutputStream());
+
+            String linea;
+            while ((linea = lectorP1.readLine()) != null) &#123;
+                escritorP2.println(linea);
+            &#125;
+            escritorP2.flush();
+            escritorP2.close(); // Notificamos fin de flujo a UltimaLinea
+
+            // 4. Leer la salida final producida por el proceso 2 e imprimirla
+            BufferedReader lectorP2 = new BufferedReader(new InputStreamReader(procesoFiltro.getInputStream()));
+            String resultadoFinal = lectorP2.readLine();
+
+            System.out.println("--- ÚLTIMA LÍNEA OBTENIDA ---");
+            System.out.println(resultadoFinal);
+
+            procesoComando.waitFor();
+            procesoFiltro.waitFor();
+
+        &#125; catch (Exception e) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;</code></pre>
+      </div>
+
+      <div class="tab-content">
+        <pre><code>import java.io.BufferedReader;
+import java.io.InputStreamReader;
+
+public class UltimaLinea &#123;
+    public static void main(String[] args) &#123;
+        try &#123;
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            String lineaActual;
+            String ultimaLinea = "";
+
+            while ((lineaActual = br.readLine()) != null) &#123;
+                // Si la línea no está en blanco, la guardamos
+                if (!lineaActual.trim().isEmpty()) &#123;
+                    ultimaLinea = lineaActual;
+                &#125;
+            &#125;
+
+            // Imprime únicamente la última línea recibida
+            System.out.println(ultimaLinea);
+
+        &#125; catch (Exception e) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ejercicio 4 -->
+  <section id="ejercicio-4" class="exercise-block">
+    <div class="exercise-header">
+      <span class="badge badge-sky">Ejercicio 4</span>
+      <h2>Inversor de Archivo con 2 Subprocesos (Excluyendo 'FIN')</h2>
+    </div>
+
+    <div class="card card-accent-sky">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Dado un archivo <code>.txt</code> con nombres (Ana, Laura, Sergio, Pedro, FIN), crear una clase Main que devuelva los datos en orden inverso sin la palabra FIN. Usar dos procesos hijos:
+      </p>
+      <ul>
+        <li><strong>Hijo 1:</strong> Recibe el archivo de texto y devuelve el listado.</li>
+        <li><strong>Hijo 2:</strong> Recibe la lista de nombres y los devuelve en orden inverso.</li>
+      </ul>
+    </div>
+
+    <div class="code-wrapper">
+      <pre><code>// HIJO 1: LectorArchivo.java (Lee el archivo físico y vuelca sus líneas)
+import java.io.*;
+
+public class LectorArchivo &#123;
+    public static void main(String[] args) &#123;
+        try &#123;
+            BufferedReader brTeclado = new BufferedReader(new InputStreamReader(System.in));
+            String rutaArchivo = brTeclado.readLine(); // Recibe la ruta del fichero
+
+            File f = new File(rutaArchivo);
+            if (f.exists()) &#123;
+                BufferedReader brFile = new BufferedReader(new FileReader(f));
+                String linea;
+                while ((linea = brFile.readLine()) != null) &#123;
+                    System.out.println(linea); // Envía cada línea por stdout
+                &#125;
+                brFile.close();
+            &#125;
+        &#125; catch (Exception e) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;
+
+// HIJO 2: InversorLista.java (Recibe líneas, excluye 'FIN' y las invierte)
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Collections;
+
+public class InversorLista &#123;
+    public static void main(String[] args) &#123;
+        try &#123;
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            ArrayList&lt;String&gt; nombres = new ArrayList&lt;&gt;();
+            String linea;
+
+            while ((linea = br.readLine()) != null) &#123;
+                if (!linea.trim().equalsIgnoreCase("FIN")) &#123;
+                    nombres.add(linea.trim());
+                &#125;
+            &#125;
+
+            // Invertir la lista
+            Collections.reverse(nombres);
+
+            // Imprimir en orden inverso
+            for (String nombre : nombres) &#123;
+                System.out.println(nombre);
+            &#125;
+        &#125; catch (Exception e) &#123;
+            e.printStackTrace();
+        &#125;
+    &#125;
+&#125;</code></pre>
+    </div>
+  </section>
+
+  <!-- Ejercicio 5 -->
+  <section id="ejercicio-5" class="exercise-block">
+    <div class="exercise-header">
+      <span class="badge badge-sky">Ejercicio 5</span>
+      <h2>Validador de Contraseñas Multiproceso Modular</h2>
+    </div>
+
+    <div class="card card-accent-sky">
+      <h4>Enunciado Oficial</h4>
+      <p>
+        Menú de 5 opciones: 1. Identificarse, 2. Primera comprobación (subproceso: verifica que haya mayúsculas), 3. Segunda comprobación (subproceso: verifica mínimo 8 caracteres), 4. Resumen (muestra usuario, contraseña y estado "OK", "ERROR" o "En espera"), 5. Salir.
+      </p>
+    </div>
+
+    <div class="code-wrapper">
+      <pre><code>// Subproceso 1: PrimeraComprobacion.java (Verifica mayúsculas)
+import java.io.*;
+
+public class PrimeraComprobacion &#123;
+    public static void main(String[] args) &#123;
+        try &#123;
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            String pass = br.readLine();
+            boolean tieneMayuscula = false;
+
+            if (pass != null) &#123;
+                for (char c : pass.toCharArray()) &#123;
+                    if (Character.isUpperCase(c)) &#123;
+                        tieneMayuscula = true;
+                        break;
+                    &#125;
+                &#125;
+            &#125;
+            System.out.println(tieneMayuscula ? "OK" : "ERROR");
+        &#125; catch (Exception e) &#123;
+            System.out.println("ERROR");
+        &#125;
+    &#125;
+&#125;
+
+// Subproceso 2: SegundaComprobacion.java (Verifica longitud &gt;= 8)
+import java.io.*;
+
+public class SegundaComprobacion &#123;
+    public static void main(String[] args) &#123;
+        try &#123;
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            String pass = br.readLine();
+            if (pass != null && pass.length() &gt;= 8) &#123;
+                System.out.println("OK");
+            &#125; else &#123;
+                System.out.println("ERROR");
+            &#125;
+        &#125; catch (Exception e) &#123;
+            System.out.println("ERROR");
+        &#125;
+    &#125;
+&#125;</code></pre>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .header-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .lead {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    max-width: 850px;
+    margin-top: 0.5rem;
+  }
+
+  .toc-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .toc-title {
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.5rem 1.5rem;
+  }
+
+  .toc-grid a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.88rem;
+    transition: color 0.2s;
+  }
+
+  .toc-grid a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+  }
+
+  .exercise-block {
+    margin-bottom: 4rem;
+    scroll-margin-top: 5rem;
+  }
+
+  .exercise-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .exercise-header h2 {
+    margin: 0;
+    border: none;
+    padding: 0;
+  }
+</style>
+
